@@ -45,11 +45,16 @@ on:
 jobs:
 
   AzureBicepDeploy:
+  
     name: 'AzureBicepDeploy'
+    
     runs-on: ubuntu-latest
+    
     env:
       ResourceGroupName: rg-aad-dev-01 
+      
       ResourceGroupLocation: "usgovvirginia"
+      
     environment: production
 
     steps:
