@@ -6,6 +6,7 @@ How to build the bicep code
 ```plaintext
 bicep build .\bicep\main.bicep
 ```
+How to deploy
 
 **Example**
 ```plaintext
