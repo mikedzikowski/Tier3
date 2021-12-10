@@ -175,7 +175,7 @@ module subnet 'modules/subnet.bicep' = if (useExistingVnetandSubnet) {
   ]
 }
 
-module asev3 'modules/appserviceevironment.bicep' = {
+module asev3 'modules/appserviceenvironment.bicep' = {
   name: 'ase-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, resourceGroupName)
   params: {
