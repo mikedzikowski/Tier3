@@ -3,29 +3,27 @@
 How to build the bicep code
 
 **Example** 
+
 ```plaintext
 bicep build .\bicep\main.bicep
 ```
+
 How to deploy
 
 **Example**
+
 ```plaintext
 az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\bicep\main.bicep
 ```
+
 How to enable vNet Peering to an existing virtual network 
 
 **Example**
+
 ```plaintext
 
-az deployment sub create --name Tier03Deployment --location usgovvirginia --template-file .\bicep\main.bicep `
+az deployment sub create --location usgovvirginia --template-file .\main.bicep --name appGateway
 
---parameters usePeering=true `
---parameters existingRemoteVirtualNetworkName=vnet-hub-usgovvirginia-001 `
---parameters existingRemoteVirtualNetworkResourceGroupName=rg-hub-network-001 `
---parameters subscriptionId=00000000-0000-0000-0000-000000000000 `
---parameters resourceGroupName=rg-aad-dev-01 `
---parameters sqlLocation=usdodeast `
---parameters sqlAdministratorLogin=xadmin `
 ```
 
 # GitHub Integration #
@@ -45,7 +43,7 @@ jobs:
     name: 'AzureBicepDeploy'
     runs-on: ubuntu-latest
     env:
-      ResourceGroupName: rg-aad-dev-01
+      ResourceGroupName: rg-app-gateway-example-01
       ResourceGroupLocation: "usgovvirginia"
     environment: production
 
@@ -69,3 +67,9 @@ jobs:
         resourceGroupName: ${{ env.ResourceGroupName }}
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         template: ./Bicep/main.json
+
+# Referemces #
+
+Quickstart: Direct web traffic with Azure Application Gateway - Azure portal [Quickstart: Direct web traffic with Azure Application Gateway - Azure portal] (https://docs.microsoft.com/en-us/samples/azure-samples/application-gateway-dotnet-manage-simple-application-gateways/getting-started-on-managing-simple-application-gateways-in-c/).
+
+Tutorial: Import a certificate in Azure Key Vault [Tutorial: Import a certificate in Azure Key Vault] (https://docs.microsoft.com/en-us/azure/key-vault/certificates/tutorial-import-certificate).
