@@ -20,13 +20,13 @@ The subscription and resource group can be changed by providing the resource gro
 # How to build the bicep code #
 
 ```plaintext
-bicep build .\bicep\main.bicep
+bicep build .\main.bicep
 ```
 
 # How to deploy #
 
 ```plaintext
-az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\bicep\main.bicep
+az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\main.bicep
 ```
 
 # GitHub Integration #
