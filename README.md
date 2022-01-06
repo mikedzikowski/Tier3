@@ -60,6 +60,8 @@ jobs:
 
 # Referemces #
 
+```plaintext
 Quickstart: Direct web traffic with Azure Application Gateway - Azure portal [Quickstart: Direct web traffic with Azure Application Gateway - Azure portal] (https://docs.microsoft.com/en-us/samples/azure-samples/application-gateway-dotnet-manage-simple-application-gateways/getting-started-on-managing-simple-application-gateways-in-c/).
 
 Tutorial: Import a certificate in Azure Key Vault [Tutorial: Import a certificate in Azure Key Vault] (https://docs.microsoft.com/en-us/azure/key-vault/certificates/tutorial-import-certificate).
+```
