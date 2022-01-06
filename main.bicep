@@ -14,7 +14,7 @@ param subscriptionId string = '00000000-0000-0000-0000-000000000000'
 param location string = 'usgovvirginia'
 
 @description('Required. ResourceGroup Name.')
-param resourceGroupName string = 'rg-app-gateway-example-01'
+param targetResourceGroup string = 'rg-app-gateway-example-01'
 
 // VIRTUAL NETWORKING PARAMETERS
 @description('Required. Use existing virtual network and subnet.')
@@ -169,7 +169,7 @@ param aseKind string = 'ASEV3'
 
   After the initial build, import the required certificates to your keyvault. 
   Once the certificate is imported, set buildAppGateway value to true and buildKeyVault to false and run this deployment again. 
-  
+
 */
 
 param buildKeyVault bool = true 
@@ -249,7 +249,7 @@ module rg 'modules/resourceGroup.bicep' = {
   name: 'resourceGroup-deployment-${deploymentNameSuffix}'
   scope: subscription(subscriptionId)
   params: {
-    name: resourceGroupName
+    name: targetResourceGroup
     location: location
     tags: {}
   }
@@ -257,7 +257,7 @@ module rg 'modules/resourceGroup.bicep' = {
 
 module names 'Modules/NamingConvention.bicep' = {
   name: 'naming-convention-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     environment: environment
     function: function
@@ -271,7 +271,7 @@ module names 'Modules/NamingConvention.bicep' = {
 
 module msi 'modules/managedIdentity.bicep' = {
   name: 'managed-identity-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     managedIdentityName:managedIdentityNamingConvention
     location: location
@@ -280,7 +280,7 @@ module msi 'modules/managedIdentity.bicep' = {
 
 module keyvault 'modules/keyvault.bicep' = if (buildKeyVault) {
   name: 'keyvault-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     keyVaultName: keyVaultNamingConvention
     objectId: msi.outputs.msiPrincipalId
@@ -294,7 +294,7 @@ module keyvault 'modules/keyvault.bicep' = if (buildKeyVault) {
 
 module nsg 'modules/nsg.bicep' = if (!useExistingVnetandSubnet) {
   name: 'nsg-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     nsgName: networkSecurityGroupNamingConvention
     networkSecurityGroupSecurityRules: networkSecurityGroupSecurityRules
@@ -307,7 +307,7 @@ module nsg 'modules/nsg.bicep' = if (!useExistingVnetandSubnet) {
 
 module virtualnetwork 'modules/virtualNetwork.bicep' = if (!useExistingVnetandSubnet) {
   name: 'vnet-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     virtualNetworkName: virtualNetworkNamingConvention
     vNetAddressPrefixes: vNetAddressPrefixes
@@ -361,7 +361,7 @@ module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
 }
 module asev3 'modules/appserviceevironment.bicep' = {
   name: 'ase-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     aseName: aseNamingConvention
     aseVnetId: virtualnetwork.outputs.vNetId
@@ -378,7 +378,7 @@ module asev3 'modules/appserviceevironment.bicep' = {
 
 module appserviceplan 'modules/appserviceplan.bicep' = {
   name: 'app-serviceplan-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     appServicePlanName: appServicePlanNamingConvention
     hostingEnvironmentId: asev3.outputs.hostingid
@@ -393,7 +393,7 @@ module appserviceplan 'modules/appserviceplan.bicep' = {
 
 module privatednszone 'modules/privatednszone.bicep' = {
   name: 'private-dns-zone-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     privateDNSZoneName: privateDNSZoneNamingConvention
     virtualNetworkId: virtualnetwork.outputs.vNetId
@@ -407,7 +407,7 @@ module privatednszone 'modules/privatednszone.bicep' = {
 
 module web 'modules/webAppBehindASE.bicep' = {
   name: 'web-app-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     managedIdentityName: managedIdentityNamingConvention
     aseName: aseNamingConvention
@@ -424,7 +424,7 @@ module web 'modules/webAppBehindASE.bicep' = {
 
 module peeringToHub 'modules/vNetPeering.bicep' = if (usePeering) {
   name: 'hub-peering-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     existingLocalVirtualNetworkName: virtualnetwork.outputs.name
     existingRemoteVirtualNetworkName: existingRemoteVirtualNetworkName
@@ -445,7 +445,7 @@ module peeringToSpoke 'modules/vNetPeering.bicep' = if (usePeering) {
   params: {
     existingLocalVirtualNetworkName: existingRemoteVirtualNetworkName
     existingRemoteVirtualNetworkName: virtualnetwork.outputs.name
-    existingRemoteVirtualNetworkResourceGroupName: resourceGroupName
+    existingRemoteVirtualNetworkResourceGroupName: targetResourceGroup
   }
 
   dependsOn: [
@@ -459,7 +459,7 @@ module peeringToSpoke 'modules/vNetPeering.bicep' = if (usePeering) {
 
 module dnsZone 'modules/dnsZone.bicep' = {
   name: 'dnsZone-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     dnsZoneName: dnsZoneName
     location: 'Global'
@@ -476,10 +476,10 @@ module dnsZone 'modules/dnsZone.bicep' = {
 
 module applicationGateway 'modules/applicationGateway.bicep' = if (buildAppGateway) {
   name: 'applicationGateway-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     subscriptionId: subscriptionId
-    resourceGroup: resourceGroupName
+    resourceGroup: targetResourceGroup
     location: location
     applicationGatewayName: applicationGatewayNamingConvention
     vNetName: virtualNetworkNamingConvention

@@ -1,16 +1,29 @@
 # Mission Owner Environment - Tier 3 Environment #
 
-How to build the bicep code
+# Application Gateway Example #
 
-**Example** 
+This example deploys a Tier 3 environment to support an Application Service Environment (ILB), App Service, and Application Gateway Integration.
+
+Read on to understand what this example does, and when you're ready, collect all of the pre-requisites, then deploy the example.
+
+# What this example does #
+
+The docs on Integrate your ILB App Service Environment with the Azure Application Gateway: https://docs.microsoft.com/en-us/azure/app-service/environment/integrate-with-application-gateway. This sample shows how to deploy the sample environment using Azure Bicep.
+
+The subscription and resource group can be changed by providing the resource group name (Param: targetResourceGroup) and ensuring that the Azure context is set the proper subscription.
+
+# Pre-requisites #
+
+- A public DNS name that's used later to point to your application gateway.
+- To use TLS/SSL encryption to the application gateway, a valid public certificate that's used to bind to your application gateway is required.
+
+# How to build the bicep code #
 
 ```plaintext
 bicep build .\bicep\main.bicep
 ```
 
-How to deploy
-
-**Example**
+# How to deploy #
 
 ```plaintext
 az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\bicep\main.bicep
