@@ -61,6 +61,6 @@ jobs:
 
 # References #
 
-- [Quickstart: Direct web traffic with Azure Application Gateway - Azure portal](https://docs.microsoft.com/en-us/samples/azure-samples/application-gateway-dotnet-manage-simple-application-gateways/getting-started-on-managing-simple-application-gateways-in-c/).
+- [Integrate your ILB App Service Environment with the Azure Application Gateway](https://docs.microsoft.com/en-us/azure/app-service/environment/integrate-with-application-gateway).
 
 - [Tutorial: Import a certificate in Azure Key Vault](https://docs.microsoft.com/en-us/azure/key-vault/certificates/tutorial-import-certificate).
