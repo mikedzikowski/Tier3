@@ -8,7 +8,7 @@ targetScope = 'subscription'
 // REQUIRED PARAMETERS
 
 @description('Required. Subscription GUID.')
-param subscriptionId string = 'f4972a61-1083-4904-a4e2-a790107320bf'
+param subscriptionId string = '00000000-0000-0000-0000-000000000000'
 
 @description('Required. ResourceGroup location.')
 param location string = 'usgovvirginia'
