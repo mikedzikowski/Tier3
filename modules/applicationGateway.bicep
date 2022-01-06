@@ -1,7 +1,7 @@
 param subscriptionId string
 param resourceGroup string
 param location string 
-param applicationGateways_app_gw_name string 
+param applicationGatewayName string 
 param vNetName string 
 param subnetName string 
 param webAppFqdn string
@@ -27,13 +27,13 @@ param http2Enabled bool
 param requestRoutingRuleType string
 param webApplicationFirewall object = {}
 
-var frontendIPConfigurationName = '${applicationGateways_app_gw_name}-publicFrontendIp'
+var frontendIPConfigurationName = '${applicationGatewayName}-publicFrontendIp'
 var frontendPortName = 'port_${port}'
-var httpslistenerName = '${applicationGateways_app_gw_name}-https-listener'
-var backendAddressPoolName = '${applicationGateways_app_gw_name}-backend-pool'
-var backendHttpSettingsName = '${applicationGateways_app_gw_name}-https-setting'
-var gatewayIPConfigurationsName = '${applicationGateways_app_gw_name}-gatewayIpConfig'
-var requestRoutingRulesName = '${applicationGateways_app_gw_name}-https-routingrule'
+var httpslistenerName = '${applicationGatewayName}-https-listener'
+var backendAddressPoolName = '${applicationGatewayName}-backend-pool'
+var backendHttpSettingsName = '${applicationGatewayName}-https-setting'
+var gatewayIPConfigurationsName = '${applicationGatewayName}-gatewayIpConfig'
+var requestRoutingRulesName = '${applicationGatewayName}-https-routingrule'
 
 resource virtualnetwork 'Microsoft.Network/virtualNetworks@2020-11-01'existing = {
   name: vNetName
@@ -59,8 +59,8 @@ resource publicIpAddress 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
   }
 }
 
-resource applicationGateways_app_gw_name_resource 'Microsoft.Network/applicationGateways@2020-11-01' = {
-  name: applicationGateways_app_gw_name
+resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' = {
+  name: applicationGatewayName
   location: location
   identity: {
     type: 'UserAssigned'
@@ -142,14 +142,14 @@ resource applicationGateways_app_gw_name_resource 'Microsoft.Network/application
         name: httpslistenerName
         properties: {
           frontendIPConfiguration: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGateways_app_gw_name}/frontendIPConfigurations/${frontendIPConfigurationName}')
+            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/frontendIPConfigurations/${frontendIPConfigurationName}')
           }
          frontendPort: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGateways_app_gw_name}/frontendPorts/${frontendPortName}')
+            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/frontendPorts/${frontendPortName}')
           }
           protocol: protocol
           sslCertificate: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGateways_app_gw_name}/sslCertificates/${sslCertificateName}')
+            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/sslCertificates/${sslCertificateName}')
           }
           hostNames: hostnames
           requireServerNameIndication: requireServerNameIndication
@@ -163,13 +163,13 @@ resource applicationGateways_app_gw_name_resource 'Microsoft.Network/application
         properties: {
           ruleType: requestRoutingRuleType
           httpListener: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGateways_app_gw_name}/httpListeners/${httpslistenerName}')
+            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/httpListeners/${httpslistenerName}')
           }
           backendAddressPool: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGateways_app_gw_name}/backendAddressPools/${backendAddressPoolName}')
+            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/backendAddressPools/${backendAddressPoolName}')
           }
           backendHttpSettings: {
-           id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGateways_app_gw_name}/backendHttpSettingsCollection/${backendHttpSettingsName}')
+           id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/backendHttpSettingsCollection/${backendHttpSettingsName}')
           }
         }
       }
