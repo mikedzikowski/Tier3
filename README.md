@@ -16,16 +16,6 @@ How to deploy
 az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\bicep\main.bicep
 ```
 
-How to enable vNet Peering to an existing virtual network 
-
-**Example**
-
-```plaintext
-
-az deployment sub create --location usgovvirginia --template-file .\main.bicep --name appGateway
-
-```
-
 # GitHub Integration #
 
 ```Yaml
