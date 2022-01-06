@@ -27,6 +27,18 @@ bicep build .\main.bicep
 
 ```plaintext
 az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\main.bicep
+
+
+/*
+  First build, set buildKeyVault to true. 
+
+  - After the initial build, import the required certificates to your keyvault. 
+  - Once the certificate is imported, set buildAppGateway value to true and buildKeyVault to false and run this deployment again. 
+
+*/
+
+param buildKeyVault bool = true 
+param buildAppGateway bool = false
 ```
 
 # GitHub Integration #
