@@ -24,14 +24,7 @@ param vNetAddressPrefixes array = [
 param aseSubnetAddressPrefix string = '172.18.0.0/24'
 
 @description('Required. The subnet Name of ASEv3.')
-param appGwsubnetAddressPrefix string = '172.18.1.0/24'
-
-@description('Required. Secret Name in KeyVault')
-param secretName string = 'Secret001'
-
-@description('Required. Secret Value in KeyVault')
-@secure()
-param secretValue string = newGuid()
+param appGwSubnetAddressPrefix string = '172.18.1.0/24'
 
 @description('Required. Array of Security Rules to deploy to the Network Security Group.')
 param networkSecurityGroupSecurityRules array = [
@@ -207,8 +200,6 @@ module keyvault 'modules/keyvault.bicep' = if (buildKeyVault) {
   scope: resourceGroup(subscriptionId, resourceGroupName)
   params: {
     keyVaultName: keyVaultName
-    secretName: secretName
-    secretValue: secretValue
     objectId: msi.outputs.msiPrincipalId
   }
   dependsOn: [
@@ -275,7 +266,7 @@ module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
   params: {
     virtualNetworkName: virtualNetworkName
     subnetName: appGwSubnetName
-    subnetAddressPrefix: appGwsubnetAddressPrefix
+    subnetAddressPrefix: appGwSubnetAddressPrefix
     delegations: []
   }
   dependsOn: [
