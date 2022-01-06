@@ -57,6 +57,7 @@ jobs:
         resourceGroupName: ${{ env.ResourceGroupName }}
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         template: ./Bicep/main.json
+```
 
 # Referemces #
 
