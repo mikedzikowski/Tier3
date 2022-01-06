@@ -10,6 +10,8 @@ Read on to understand what this example does, and when you're ready, collect all
 
 The docs on Integrate your ILB App Service Environment with the Azure Application Gateway: https://docs.microsoft.com/en-us/azure/app-service/environment/integrate-with-application-gateway. This sample shows how to deploy the sample environment using Azure Bicep.
 
+![image alt text](/images/ase.png)
+
 The subscription and resource group can be changed by providing the resource group name (Param: targetResourceGroup) and ensuring that the Azure context is set the proper subscription.
 
 # Pre-requisites #
