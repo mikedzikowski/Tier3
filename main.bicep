@@ -160,6 +160,7 @@ param webApplicationFirewall object = {
 }
 
 // APPLICATION SERVICE ENVIRONMENT
+@description('ASE kind | ASEV3 | ASEV2')
 param aseKind string = 'ASEV3'
 
 // Build Options 
@@ -198,7 +199,7 @@ param environment string = 'test'
 
 // FUNCTION or GOAL OF ENVIRONMENT
 
-param function string = 'environment'
+param function string = 'env'
 
 // STARTING INDEX NUMBER
 
