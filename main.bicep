@@ -3,8 +3,6 @@ targetScope = 'subscription'
 /*
   PARAMETERS
   Here are all the parameters a user can override.
-  These are the required parameters that Mission LZ does not provide a default for:
-    - resourcePrefix
 */
 
 // REQUIRED PARAMETERS
@@ -18,6 +16,7 @@ param location string = 'usgovvirginia'
 @description('Required. ResourceGroup Name.')
 param resourceGroupName string = 'rg-app-gateway-example-01'
 
+// VIRTUAL NETWORKING PARAMETERS
 @description('Required. Use existing virtual network and subnet.')
 param useExistingVnetandSubnet bool = false
 
@@ -61,23 +60,30 @@ param deploymentNameSuffix string = utcNow()
 
 // If peering update this value
 @description('Required. Exisisting vNet Name for Peering.')
-param existingRemoteVirtualNetworkName string = 'vnet-hub-til-usgovvirginia-001'
+param existingRemoteVirtualNetworkName string = ''
 
 // If peering update this value
 @description('Required. Exisisting vNet Resource Group for Peering.')
-param existingRemoteVirtualNetworkResourceGroupName string = 'rg-hub-til-001'
+param existingRemoteVirtualNetworkResourceGroupName string = ''
 
 // If peering update this value 
 @description('Required. Setup Peering.')
 param usePeering bool = false
 
+// Application Gateway Parameters 
 param sslCertificateName string = 'cert'
 
+// DNS Zone Parameters 
+@description('DNS Zone Name')
 param dnsZoneName string = 'mikedzikowski.com'
 
+@description('Hostnames for DNS')
 param hostnames array = [
   '*.${dnsZoneName}'
 ]
+
+// APPLICATION GATEWAY PARAMETERS 
+@description('Integer containing port number')
 param port int = 443
 
 @description('Application gateway tier')
@@ -111,22 +117,40 @@ param capacity int = 2
 @maxValue(32)
 param autoScaleMaxCapacity int = 10
 
+@description('Private IP Allocation Method')
 param privateIPAllocationMethod string = 'Dynamic'
+
+@description('Backend http setting protocol')
 param protocol string = 'Https'
+
+@description('Enabled/Disabled. Configures cookie based affinity.')
 param cookieBasedAffinity string = 'Disabled'
+
+@description('Pick Hostname From BackEndAddress Setting')
 param pickHostNameFromBackendAddress bool = true
+
+@description('Integer containing backend http setting request timeout')
 param requestTimeout int = 20
+
 param requireServerNameIndication bool = true
+
+@description('Public IP Sku')
 param publicIpSku string = 'Standard'
+
+@description('Public IP Applocation Method')
 param publicIPAllocationMethod string = 'Static'
 
 @description('Enable HTTP/2 support')
 param http2Enabled bool = true
+
+@description('Request Routing Rule Type')
 param requestRoutingRuleType string = 'Basic'
+
+@description('Object containing Web Application Firewall configurations')
 param webApplicationFirewall object = {
   enabled: true
   firewallMode: 'Detection'
-  ruleSetType: 'OWASP'
+  ruleSetType: 'OWASP' 
   ruleSetVersion: '3.2'
   disabledRuleGroups: []
   exclusions: []
@@ -135,10 +159,57 @@ param webApplicationFirewall object = {
   fileUploadLimitInMb: 100
 }
 
-param buildKeyVault bool = true
+// APPLICATION SERVICE ENVIRONMENT
+param aseKind string = 'ASEV3'
+
+// Build Options 
+/*
+  First build, set buildKeyVault to true. 
+
+  After the initial build, import the required certificates to your keyvault. 
+  Once the certificate is imported, set buildAppGateway value to true and buildKeyVault to false and run this deployment again. 
+*/
+
+param buildKeyVault bool = true 
 param buildAppGateway bool = false
 
-// RESOURCE NAME CONVENTIONS WITH ABBREVIATIONS1
+// NAMING CONVENTION RULES
+/*
+  These parameters are for the naming convention 
+
+  environment // FUNCTION or GOAL OF ENVIRONMENT
+  function // FUNCTION or GOAL OF ENVIRONMENT
+  index // STARTING INDEX NUMBER
+  appName // APP NAME 
+
+  EXAMPLE RESULT: tier3-t-environment-vnet-01 // tier3{appName}, t[environment], environment{function}, VNET{abbreviation}, 01{index} 
+  
+*/
+
+// ENVIRONMENT 
+
+@allowed([
+  'development'
+  'test'
+  'staging'
+  'production'
+])
+param environment string = 'test'
+
+// FUNCTION or GOAL OF ENVIRONMENT
+
+param function string = 'environment'
+
+// STARTING INDEX NUMBER
+
+param index int = 1
+
+// APP NAME 
+
+param appName string = 'tier3'
+
+// RESOURCE NAME CONVENTIONS WITH ABBREVIATIONS
+
 var publicIpAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'pip')
 var privateDNSZoneNamingConvention = asev3.outputs.dnssuffix
 var virtualNetworkNamingConvention = replace(names.outputs.resourceName, '[PH]', 'vnet')
@@ -186,10 +257,10 @@ module names 'Modules/NamingConvention.bicep' = {
   name: 'naming-convention-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, resourceGroupName)
   params: {
-    environment: 'test'
-    function: 'environment'
-    index: 1
-    appName: 'tier3'
+    environment: environment
+    function: function
+    index: index
+    appName: appName
   }
   dependsOn: [
     rg
@@ -293,6 +364,7 @@ module asev3 'modules/appserviceevironment.bicep' = {
     aseName: aseNamingConvention
     aseVnetId: virtualnetwork.outputs.vNetId
     aseSubnetName: aseSubnetNamingConvention
+    kind: aseKind
   }
   dependsOn: [
     virtualnetwork

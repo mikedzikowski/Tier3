@@ -4,12 +4,13 @@ param aseLbMode int = 3
 param aseName string
 param aseSubnetName string 
 param aseVnetId string
+param aseKind string
 
 var subnetId  = '${aseVnetId}/Subnets/${aseSubnetName}'
 resource asev3 'Microsoft.Web/hostingEnvironments@2021-01-01' = {  
   name: aseName
   location: location
-  kind: 'ASEV3'
+  kind: aseKind
   properties: {
     // dnsSuffix: '${aseName}.appserviceenvironment.us'
     internalLoadBalancingMode: aseLbMode
