@@ -1,84 +1,160 @@
 targetScope = 'subscription'
 
 @description('Required. Subscription GUID.')
-param subscriptionId string
-
-@description('Required. ResourceGroup Name.')
-param resourceGroupName string
+param subscriptionId string = 'f4972a61-1083-4904-a4e2-a790107320bf'
 
 @description('Required. ResourceGroup location.')
-param resourceGroupLocation string = 'usgovvirginia'
+param location string = 'usgovvirginia'
+
+@description('Required. ResourceGroup Name.')
+param resourceGroupName string = 'rg-aad-dev-01'
 
 @description('Required. Use existing virtual network and subnet.')
 param useExistingVnetandSubnet bool = false
 
 @description('Required. Resource Group name of virtual network if using existing vnet and subnet.')
-param vNetResourceGroupName string = 'existing-vNet'
+param vNetResourceGroupName string = 'rg-aad-dev-01'
 
 @description('Required. An Array of 1 or more IP Address Prefixes for the Virtual Network.')
 param vNetAddressPrefixes array = [
-  '172.17.0.0/16'
+  '172.18.0.0/16'
 ]
 
 @description('Required. The subnet Name of ASEv3.')
-param subnetAddressPrefix string = '172.17.0.0/24'
+param aseSubnetAddressPrefix string = '172.18.0.0/24'
+
+@description('Required. The subnet Name of ASEv3.')
+param appGwsubnetAddressPrefix string = '172.18.1.0/24'
 
 @description('Required. Secret Name in KeyVault')
-param secretName string =  'Secret001'
+param secretName string = 'Secret001'
 
 @description('Required. Secret Value in KeyVault')
 @secure()
 param secretValue string = newGuid()
 
 @description('Required. Array of Security Rules to deploy to the Network Security Group.')
-param networkSecurityGroupSecurityRules array = []
-
-@description('Required. Storage Account SKU.')
-param storageAccountType string =  'Premium_LRS'
+param networkSecurityGroupSecurityRules array = [
+  {
+    name: 'Port_443'
+    properties: {
+      protocol: '*'
+      sourcePortRange: '*'
+      destinationPortRange: '443'
+      sourceAddressPrefix: '*'
+      destinationAddressPrefix: '*'
+      access: 'Allow'
+      priority: '100'
+      direction: 'Inbound'
+      sourcePortRanges: []
+      destinationPortRanges: []
+      sourceAddressPrefixes: []
+      destinationAddressPrefixes: []
+    }
+  }
+]
 
 @description('Required. Creating UTC for deployments.')
 param deploymentNameSuffix string = utcNow()
 
 // If peering update this value
 @description('Required. Exisisting vNet Name for Peering.')
-param existingRemoteVirtualNetworkName string = ''
+param existingRemoteVirtualNetworkName string = 'vnet-hub-til-usgovvirginia-001'
 
 // If peering update this value
 @description('Required. Exisisting vNet Resource Group for Peering.')
-param existingRemoteVirtualNetworkResourceGroupName string = ''
+param existingRemoteVirtualNetworkResourceGroupName string = 'rg-hub-til-001'
 
 // If peering update this value 
 @description('Required. Setup Peering.')
 param usePeering bool = false
 
-// Object Id for access policy on keyvault -- add this GUID during deployment 
-param objectId string = '00000000-0000-0000-0000-000000000000'
+param sslCertificateName string = 'cert'
 
-@description('Required. SQL Admin Username')
-param sqlAdministratorLogin string  
+param dnsZoneName string = 'mikedzikowski.com'
 
-@description('Required. SQL Password ')
-@secure()
-param sqlAdministratorPassword string = newGuid()
+param hostnames array = [
+  '*.${dnsZoneName}'
+]
+param port int = 443
 
-@description('Required. SQL Location')
-param sqlLocation string
+@description('Application gateway tier')
+@allowed([
+  'Standard'
+  'WAF'
+  'Standard_v2'
+  'WAF_v2'
+])
+param tier string = 'WAF_v2'
 
+@description('Application gateway sku')
+@allowed([
+  'Standard_Small'
+  'Standard_Medium'
+  'Standard_Large'
+  'WAF_Medium'
+  'WAF_Large'
+  'Standard_v2'
+  'WAF_v2'
+])
+param sku string = 'WAF_v2'
+
+@description('Capacity (instance count) of application gateway')
+@minValue(1)
+@maxValue(32)
+param capacity int = 2
+
+@description('Autoscale capacity (instance count) of application gateway')
+@minValue(1)
+@maxValue(32)
+param autoScaleMaxCapacity int = 10
+
+param privateIPAllocationMethod string = 'Dynamic'
+param protocol string = 'Https'
+param cookieBasedAffinity string = 'Disabled'
+param pickHostNameFromBackendAddress bool = true
+param requestTimeout int = 20
+param requireServerNameIndication bool = true
+param publicIpSku string = 'Standard'
+param publicIPAllocationMethod string = 'Static'
+
+@description('Enable HTTP/2 support')
+param http2Enabled bool = true
+param requestRoutingRuleType string = 'Basic'
+param webApplicationFirewall object = {
+  enabled: true
+  firewallMode: 'Detection'
+  ruleSetType: 'OWASP'
+  ruleSetVersion: '3.2'
+  disabledRuleGroups: []
+  exclusions: []
+  requestBodyCheck: true
+  maxRequestBodySizeInKb: 128
+  fileUploadLimitInMb: 100
+}
+
+param buildKeyVault bool = false
+param buildAppGateway bool = true
+
+var publicIpAddressName = replace(names.outputs.resourceName, '[PH]', 'pip')
 var privateDNSZoneName = asev3.outputs.dnssuffix
-var storageAccountName = names.outputs.storageAccountName
-var dbName = names.outputs.dbName
-var virtualNetworkName = replace(names.outputs.resourceName, '[PH]', 'vnet')  
+var virtualNetworkName = replace(names.outputs.resourceName, '[PH]', 'vnet')
 var managedIdentityName = replace(names.outputs.resourceName, '[PH]', 'mi')
 var keyVaultName = replace(names.outputs.resourceName, '[PH]', 'kv')
 var aseSubnetName = replace(names.outputs.resourceName, '[PH]', 'snet')
+var appGwSubnetName = replace(names.outputs.resourceName, '[PH]', 'appgw-snet')
 var aseName = replace(names.outputs.resourceName, '[PH]', 'ase')
-var appServicePlanName = replace(names.outputs.resourceName, '[PH]', 'app-sp')
+var appServicePlanName = replace(names.outputs.resourceName, '[PH]', 'sp')
+var applicationGateways_app_gw_name = replace(names.outputs.resourceName, '[PH]', 'gw')
 var networkSecurityGroupName = replace(names.outputs.resourceName, '[PH]', 'nsg')
+var appName = replace(names.outputs.resourceName, '[PH]', 'web')
+var webAppFqdn = '${appName}.${aseName}.appserviceenvironment.us'
+var keyVaultSecretid = 'https://${keyVaultName}.vault.usgovcloudapi.net/secrets/${sslCertificateName}'
 
 var aseSubnet = [
   {
     name: replace(names.outputs.resourceName, '[PH]', 'snet')
-    addressPrefix: subnetAddressPrefix
+    addressPrefix: aseSubnetAddressPrefix
     delegations: [
       {
         name: 'Microsoft.Web.hostingEnvironments'
@@ -89,16 +165,16 @@ var aseSubnet = [
     ]
     privateEndpointNetworkPolicies: 'Enabled'
     privateLinkServiceNetworkPolicies: 'Enabled'
-    networkSecurityGroupName: networkSecurityGroupName 
+    networkSecurityGroupName: networkSecurityGroupName
   }
 ]
 
 module rg 'modules/resourceGroup.bicep' = {
   name: 'resourceGroup-deployment-${deploymentNameSuffix}'
-  scope: subscription(subscriptionId) 
+  scope: subscription(subscriptionId)
   params: {
     name: resourceGroupName
-    location: resourceGroupLocation
+    location: location
     tags: {}
   }
 }
@@ -117,18 +193,28 @@ module names 'Modules/NamingConvention.bicep' = {
   ]
 }
 
-module keyvault 'modules/keyvault.bicep' = {
+module msi 'modules/managedIdentity.bicep' = {
+  name: 'managed-identity-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(subscriptionId, resourceGroupName)
+  params: {
+    managedIdentityName:managedIdentityName
+    location: location
+  }
+}
+
+module keyvault 'modules/keyvault.bicep' = if (buildKeyVault) {
   name: 'keyvault-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, resourceGroupName)
   params: {
-    keyVaultName:keyVaultName
+    keyVaultName: keyVaultName
     secretName: secretName
     secretValue: secretValue
-    objectId: objectId
+    objectId: msi.outputs.msiPrincipalId
   }
   dependsOn: [
     rg
     names
+    msi
   ]
 }
 
@@ -149,8 +235,8 @@ module virtualnetwork 'modules/virtualNetwork.bicep' = if (!useExistingVnetandSu
   name: 'vnet-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, resourceGroupName)
   params: {
-    virtualNetworkName: virtualNetworkName 
-    vNetAddressPrefixes : vNetAddressPrefixes
+    virtualNetworkName: virtualNetworkName
+    vNetAddressPrefixes: vNetAddressPrefixes
     subnets: aseSubnet
   }
   dependsOn: [
@@ -159,13 +245,21 @@ module virtualnetwork 'modules/virtualNetwork.bicep' = if (!useExistingVnetandSu
     nsg
   ]
 }
-module subnet 'modules/subnet.bicep' = if (useExistingVnetandSubnet) {
-  name: 'subnet-delegation-deployment-${deploymentNameSuffix}'
+module subnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
+  name: 'ase-subnet-delegation-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, vNetResourceGroupName)
   params: {
     virtualNetworkName: virtualNetworkName
     subnetName: aseSubnetName
-    subnetAddressPrefix: subnetAddressPrefix
+    subnetAddressPrefix: aseSubnetAddressPrefix
+    delegations: [
+      {
+        name: 'Microsoft.Web.hostingEnvironments'
+        properties: {
+          serviceName: 'Microsoft.Web/hostingEnvironments'
+        }
+      }
+    ]
   }
   dependsOn: [
     virtualnetwork
@@ -175,7 +269,23 @@ module subnet 'modules/subnet.bicep' = if (useExistingVnetandSubnet) {
   ]
 }
 
-module asev3 'modules/appserviceenvironment.bicep' = {
+module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
+  name: 'appgw-subnet-delegation-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(subscriptionId, vNetResourceGroupName)
+  params: {
+    virtualNetworkName: virtualNetworkName
+    subnetName: appGwSubnetName
+    subnetAddressPrefix: appGwsubnetAddressPrefix
+    delegations: []
+  }
+  dependsOn: [
+    virtualnetwork
+    rg
+    names
+    nsg
+  ]
+}
+module asev3 'modules/appserviceevironment.bicep' = {
   name: 'ase-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, resourceGroupName)
   params: {
@@ -220,37 +330,20 @@ module privatednszone 'modules/privatednszone.bicep' = {
   ]
 }
 
-module web 'modules/webappsql.bicep' = {
+module web 'modules/webAppBehindASE.bicep' = {
   name: 'web-app-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, resourceGroupName)
   params: {
     managedIdentityName: managedIdentityName
-    sqlAdministratorLogin: sqlAdministratorLogin
-    sqlAdministratorPassword: sqlAdministratorPassword
     aseName: aseName
     hostingPlanName: appServicePlanName
-    sqllocation: sqlLocation
-    databaseName: dbName
+    appName: appName
   }
   dependsOn: [
     appserviceplan
     rg
     names
     nsg
-  ]
-}
-
-module sa 'modules/storageaccount.bicep' = {
-  name: 'storageaccount-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, resourceGroupName)
-  params: {
-    storageAccountType: storageAccountType
-    storageAccountName: storageAccountName
-  }
-
-  dependsOn: [
-    rg
-    names
   ]
 }
 
@@ -285,7 +378,69 @@ module peeringToSpoke 'modules/vNetPeering.bicep' = if (usePeering) {
     names
     virtualnetwork
     nsg
-    peeringToHub 
+    peeringToHub
   ]
 }
 
+module dnsZone 'modules/dnsZone.bicep' = {
+  name: 'dnsZone-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(subscriptionId, resourceGroupName)
+  params: {
+    dnsZoneName: dnsZoneName
+    location: 'Global'
+    appName: appName 
+    publicIpAddress: applicationGateway.outputs.publicIpAddress
+  }
+  dependsOn: [
+    asev3
+    privatednszone
+    virtualnetwork
+    nsg
+  ]
+}
+
+module applicationGateway 'modules/applicationGateway.bicep' = if (buildAppGateway) {
+  name: 'applicationGateway-${deploymentNameSuffix}'
+  scope: resourceGroup(subscriptionId, resourceGroupName)
+  params: {
+    subscriptionId: subscriptionId
+    resourceGroup: resourceGroupName
+    location: location
+    applicationGateways_app_gw_name: applicationGateways_app_gw_name
+    vNetName: virtualNetworkName
+    subnetName: appGwSubnetName
+    webAppFqdn: webAppFqdn
+    keyVaultSecretid: keyVaultSecretid
+    sslCertificateName: sslCertificateName
+    managedIdentityName: managedIdentityName
+    hostnames: hostnames
+    port: port
+    tier: tier
+    sku: sku
+    capacity: capacity
+    autoScaleMaxCapacity: autoScaleMaxCapacity
+    privateIPAllocationMethod: privateIPAllocationMethod
+    protocol: protocol
+    cookieBasedAffinity: cookieBasedAffinity
+    pickHostNameFromBackendAddress: pickHostNameFromBackendAddress
+    requestTimeout: requestTimeout
+    requireServerNameIndication: requireServerNameIndication
+    publicIpAddressName: publicIpAddressName
+    publicIpSku: publicIpSku
+    publicIPAllocationMethod: publicIPAllocationMethod
+    http2Enabled: http2Enabled
+    requestRoutingRuleType: requestRoutingRuleType
+    webApplicationFirewall: webApplicationFirewall
+  }
+  dependsOn: [
+    rg
+    names
+    virtualnetwork
+    subnet
+    nsg
+    peeringToHub
+    appgwSubnet
+    keyvault
+    msi
+  ]
+}

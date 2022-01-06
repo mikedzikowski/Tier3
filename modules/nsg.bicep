@@ -14,7 +14,6 @@ resource networksecuritygroup 'Microsoft.Network/networkSecurityGroups@2020-11-0
     securityRules: [for item in networkSecurityGroupSecurityRules: {
       name: item.name
       properties: {
-        description: item.properties.description
         access: item.properties.access
         destinationAddressPrefix: ((item.properties.destinationAddressPrefix == '') ? json('null') : item.properties.destinationAddressPrefix)
         destinationAddressPrefixes: ((length(item.properties.destinationAddressPrefixes) == 0) ? json('null') : item.properties.destinationAddressPrefixes)
