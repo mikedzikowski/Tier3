@@ -31,7 +31,7 @@ jobs:
 
   AzureBicepDeploy:
     name: 'AzureBicepDeploy'
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     env:
       ResourceGroupName: rg-app-gateway-example-01
       ResourceGroupLocation: "usgovvirginia"
