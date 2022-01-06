@@ -14,14 +14,14 @@ param subscriptionId string = '00000000-0000-0000-0000-000000000000'
 param location string = 'usgovvirginia'
 
 @description('Required. ResourceGroup Name.')
-param targetResourceGroup string = 'rg-app-gateway-example-01'
+param targetResourceGroup string = 'rg-app-gateway-example'
 
 // VIRTUAL NETWORKING PARAMETERS
 @description('Required. Use existing virtual network and subnet.')
 param useExistingVnetandSubnet bool = false
 
 @description('Required. Resource Group name of virtual network if using existing vnet and subnet.')
-param vNetResourceGroupName string = 'rg-app-gateway-example-01'
+param vNetResourceGroupName string = 'rg-app-gateway-example'
 
 @description('Required. An Array of 1 or more IP Address Prefixes for the Virtual Network.')
 param vNetAddressPrefixes array = [
@@ -457,7 +457,7 @@ module peeringToSpoke 'modules/vNetPeering.bicep' = if (usePeering) {
   ]
 }
 
-module dnsZone 'modules/dnsZone.bicep' = {
+module dnsZone 'modules/dnsZone.bicep' = if (buildAppGateway) {
   name: 'dnsZone-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
