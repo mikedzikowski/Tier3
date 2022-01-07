@@ -255,7 +255,7 @@ module rg 'modules/resourceGroup.bicep' = {
   }
 }
 
-module names 'Modules/namingConvention.bicep' = {
+module names 'modules/namingConvention.bicep' = {
   name: 'naming-convention-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
