@@ -8,7 +8,7 @@ targetScope = 'subscription'
 // REQUIRED PARAMETERS
 
 @description('Required. Subscription GUID.')
-param subscriptionId string = '00000000-0000-0000-0000-000000000000'
+param subscriptionId string = 'f4972a61-1083-4904-a4e2-a790107320bf'
 
 @description('Required. ResourceGroup location.')
 param location string = 'usgovvirginia'
@@ -172,8 +172,8 @@ param aseKind string = 'ASEV3'
 
 */
 
-param buildKeyVault bool = true 
-param buildAppGateway bool = false
+param buildKeyVault bool = false
+param buildAppGateway bool = true
 
 // NAMING CONVENTION RULES
 /*
@@ -196,7 +196,7 @@ param buildAppGateway bool = false
   'staging'
   'production'
 ])
-param environment string = 'test'
+param environment string = 'development'
 
 // FUNCTION or GOAL OF ENVIRONMENT
 
@@ -457,23 +457,6 @@ module peeringToSpoke 'modules/vNetPeering.bicep' = if (usePeering) {
   ]
 }
 
-module dnsZone 'modules/dnsZone.bicep' = if (buildAppGateway) {
-  name: 'dnsZone-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(subscriptionId, targetResourceGroup)
-  params: {
-    dnsZoneName: dnsZoneName
-    location: 'Global'
-    appName: appNamingConvention
-    publicIpAddress: applicationGateway.outputs.publicIpAddress
-  }
-  dependsOn: [
-    asev3
-    privatednszone
-    virtualnetwork
-    nsg
-  ]
-}
-
 module applicationGateway 'modules/applicationGateway.bicep' = if (buildAppGateway) {
   name: 'applicationGateway-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
@@ -517,5 +500,23 @@ module applicationGateway 'modules/applicationGateway.bicep' = if (buildAppGatew
     appgwSubnet
     keyvault
     msi
+  ]
+}
+
+module dnsZone 'modules/dnsZone.bicep' = if (buildAppGateway) {
+  name: 'dnsZone-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
+  params: {
+    dnsZoneName: dnsZoneName
+    location: 'Global'
+    appName: appNamingConvention
+    publicIpAddress: applicationGateway.outputs.publicIpAddress
+  }
+  dependsOn: [
+    asev3
+    privatednszone
+    virtualnetwork
+    nsg
+    applicationGateway
   ]
 }

@@ -12,6 +12,10 @@ The docs on Integrate your ILB App Service Environment with the Azure Applicatio
 
 ![image alt text](/images/ase.png)
 
+Example result
+
+![image alt text](/images/result.png)
+
 The subscription and resource group can be changed by providing the resource group name (Param: targetResourceGroup) and ensuring that the Azure context is set the proper subscription.
 
 # Pre-requisites #
