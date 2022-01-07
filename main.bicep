@@ -255,7 +255,7 @@ module rg 'modules/resourceGroup.bicep' = {
   }
 }
 
-module names 'Modules/NamingConvention.bicep' = {
+module names 'Modules/namingConvention.bicep' = {
   name: 'naming-convention-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
@@ -278,7 +278,7 @@ module msi 'modules/managedIdentity.bicep' = {
   }
 }
 
-module keyvault 'modules/keyvault.bicep' = if (buildKeyVault) {
+module keyvault 'modules/keyVault.bicep' = if (buildKeyVault) {
   name: 'keyvault-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
@@ -359,7 +359,7 @@ module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     nsg
   ]
 }
-module asev3 'modules/appserviceenvironment.bicep' = {
+module asev3 'modules/appServiceEnvironment.bicep' = {
   name: 'ase-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
@@ -376,7 +376,7 @@ module asev3 'modules/appserviceenvironment.bicep' = {
   ]
 }
 
-module appserviceplan 'modules/appserviceplan.bicep' = {
+module appserviceplan 'modules/appServicePlan.bicep' = {
   name: 'app-serviceplan-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
@@ -391,7 +391,7 @@ module appserviceplan 'modules/appserviceplan.bicep' = {
   ]
 }
 
-module privatednszone 'modules/privatednszone.bicep' = {
+module privatednszone 'modules/privateDnsZone.bicep' = {
   name: 'private-dns-zone-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
