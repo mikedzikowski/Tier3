@@ -55,6 +55,27 @@ param networkSecurityGroupSecurityRules array = [
   }
 ]
 
+param aseRoutes array = []
+
+param routes array = [
+  {
+    name: 'aseRoute'
+    addressPrefix: aseSubnetAddressPrefix
+    hasBgpOverride: true
+    nextHopIpAddress: '172.0.100.4' 
+    nextHopType: 'VirtualAppliance'
+  }
+  {
+    name: 'appGwRoute'
+    addressPrefix: appGwSubnetAddressPrefix
+    hasBgpOverride: true
+    nextHopIpAddress: '172.0.100.4'
+    nextHopType: 'VirtualAppliance'
+  }
+]
+
+param disableBgpRoutePropagation bool = false
+
 @description('Required. Creating UTC for deployments.')
 param deploymentNameSuffix string = utcNow()
 
@@ -213,6 +234,7 @@ param appName string = 'tier3'
 // RESOURCE NAME CONVENTIONS WITH ABBREVIATIONS
 
 var publicIpAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'pip')
+var udrAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'udr')
 var privateDNSZoneNamingConvention = asev3.outputs.dnssuffix
 var virtualNetworkNamingConvention = replace(names.outputs.resourceName, '[PH]', 'vnet')
 var managedIdentityNamingConvention = replace(names.outputs.resourceName, '[PH]', 'mi')
@@ -245,6 +267,8 @@ var aseSubnet = [
   }
 ]
 
+
+
 module rg 'modules/resourceGroup.bicep' = {
   name: 'resourceGroup-deployment-${deploymentNameSuffix}'
   scope: subscription(subscriptionId)
@@ -269,6 +293,18 @@ module names 'modules/namingConvention.bicep' = {
   ]
 }
 
+module routeTable 'modules/udr.bicep' = {
+  name: 'udr-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
+  params: {
+    routes:routes
+    disableBgpRoutePropagation: disableBgpRoutePropagation
+    location: location
+    udrName: udrAddressNamingConvention
+  }
+  dependsOn: []
+}
+
 module msi 'modules/managedIdentity.bicep' = {
   name: 'managed-identity-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
@@ -278,7 +314,7 @@ module msi 'modules/managedIdentity.bicep' = {
   }
 }
 
-module keyvault 'modules/keyVault.bicep' = if (buildKeyVault) {
+module keyvault 'modules/keyVault.bicep' = if (buildKeyVault == 'notDeploy') {
   name: 'keyvault-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
@@ -326,6 +362,9 @@ module subnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     virtualNetworkName: virtualNetworkNamingConvention
     subnetName: aseSubnetNamingConvention
     subnetAddressPrefix: aseSubnetAddressPrefix
+    udrName: udrAddressNamingConvention
+    disableBgpRoutePropagation: disableBgpRoutePropagation
+    routes: aseRoutes
     delegations: [
       {
         name: 'Microsoft.Web.hostingEnvironments'
@@ -340,6 +379,7 @@ module subnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     rg
     names
     nsg
+    routeTable
   ]
 }
 
@@ -347,6 +387,9 @@ module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
   name: 'appgw-subnet-delegation-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, vNetResourceGroupName)
   params: {
+    udrName: udrAddressNamingConvention
+    disableBgpRoutePropagation: disableBgpRoutePropagation
+    routes: routes
     virtualNetworkName: virtualNetworkNamingConvention
     subnetName: appGwSubnetNamingConvention
     subnetAddressPrefix: appGwSubnetAddressPrefix
@@ -357,6 +400,7 @@ module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     rg
     names
     nsg
+    routeTable
   ]
 }
 module asev3 'modules/appServiceEnvironment.bicep' = {
@@ -510,7 +554,7 @@ module dnsZone 'modules/dnsZone.bicep' = if (buildAppGateway) {
     dnsZoneName: dnsZoneName
     location: 'Global'
     appName: appNamingConvention
-    publicIpAddress: applicationGateway.outputs.publicIpAddress
+    publicIpAddress: buildAppGateway ? applicationGateway.outputs.publicIpAddress : ''
   }
   dependsOn: [
     asev3
