@@ -55,9 +55,7 @@ param networkSecurityGroupSecurityRules array = [
   }
 ]
 
-param aseRoutes array = []
-
-param routes array = [
+param aseRoutes array = [
   {
     name: 'aseRoute'
     addressPrefix: aseSubnetAddressPrefix
@@ -65,6 +63,9 @@ param routes array = [
     nextHopIpAddress: '172.0.100.4' 
     nextHopType: 'VirtualAppliance'
   }
+]
+
+param appGwRoutes array = [
   {
     name: 'appGwRoute'
     addressPrefix: appGwSubnetAddressPrefix
@@ -234,7 +235,8 @@ param appName string = 'tier3'
 // RESOURCE NAME CONVENTIONS WITH ABBREVIATIONS
 
 var publicIpAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'pip')
-var udrAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'udr')
+var aseUdrAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'udr-ase')
+var gwUdrAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'udr-gw')
 var privateDNSZoneNamingConvention = asev3.outputs.dnssuffix
 var virtualNetworkNamingConvention = replace(names.outputs.resourceName, '[PH]', 'vnet')
 var managedIdentityNamingConvention = replace(names.outputs.resourceName, '[PH]', 'mi')
@@ -293,16 +295,32 @@ module names 'modules/namingConvention.bicep' = {
   ]
 }
 
-module routeTable 'modules/udr.bicep' = {
-  name: 'udr-deployment-${deploymentNameSuffix}'
+module aseRouteTable 'modules/udr.bicep' = {
+  name: 'ase-udr-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
-    routes:routes
+    routes:appGwRoutes
     disableBgpRoutePropagation: disableBgpRoutePropagation
     location: location
-    udrName: udrAddressNamingConvention
+    udrName: aseUdrAddressNamingConvention
   }
-  dependsOn: []
+  dependsOn: [
+    rg
+  ]
+}
+
+module appGwRouteTable 'modules/udr.bicep' = {
+  name: 'appgw-udr-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(subscriptionId, targetResourceGroup)
+  params: {
+    routes:aseRoutes
+    disableBgpRoutePropagation: disableBgpRoutePropagation
+    location: location
+    udrName: gwUdrAddressNamingConvention
+  }
+  dependsOn: [
+    rg
+  ]
 }
 
 module msi 'modules/managedIdentity.bicep' = {
@@ -362,7 +380,7 @@ module subnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     virtualNetworkName: virtualNetworkNamingConvention
     subnetName: aseSubnetNamingConvention
     subnetAddressPrefix: aseSubnetAddressPrefix
-    udrName: udrAddressNamingConvention
+    udrName: aseUdrAddressNamingConvention
     disableBgpRoutePropagation: disableBgpRoutePropagation
     routes: aseRoutes
     delegations: [
@@ -379,7 +397,8 @@ module subnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     rg
     names
     nsg
-    routeTable
+    aseRouteTable
+    appGwRouteTable
   ]
 }
 
@@ -387,9 +406,9 @@ module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
   name: 'appgw-subnet-delegation-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, vNetResourceGroupName)
   params: {
-    udrName: udrAddressNamingConvention
+    udrName: gwUdrAddressNamingConvention
     disableBgpRoutePropagation: disableBgpRoutePropagation
-    routes: routes
+    routes: appGwRoutes
     virtualNetworkName: virtualNetworkNamingConvention
     subnetName: appGwSubnetNamingConvention
     subnetAddressPrefix: appGwSubnetAddressPrefix
@@ -400,7 +419,8 @@ module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     rg
     names
     nsg
-    routeTable
+    aseRouteTable
+    appGwRouteTable
   ]
 }
 module asev3 'modules/appServiceEnvironment.bicep' = {
