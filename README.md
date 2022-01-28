@@ -49,15 +49,6 @@ param buildKeyVault bool = true
 param buildAppGateway bool = false
 ```
 
-### Deploy from the Azure Portal
-<!-- markdownlint-disable MD013 -->
-1. Deploy Mission Landing Zone into `AzureCloud` or `AzureUsGovernment` from the Azure Portal:
-
-    | Azure Government |
-    | :--- |
-    [![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://github.com/mikedzikowski/Tier3/blob/main/main.json) |
-<!-- markdownlint-enable MD013 -->
-
 # GitHub Integration #
 
 ```Yaml
