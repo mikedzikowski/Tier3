@@ -64,7 +64,7 @@ param networkSecurityGroupSecurityRules array = [
   }
 ]
 
-@description('Required. Route Table. nextHopIpAddress is the pip of Azure Firewall')
+@description('Required. Route Table. nextHopIpAddress is the private ip of the hub Azure Firewall')
 param aseRoutes array = [
   {
     name: 'aseRoute'
@@ -75,7 +75,7 @@ param aseRoutes array = [
   }
 ]
 
-@description('Required. Route Table. nextHopIpAddress is the pip of Azure Firewall')
+@description('Required. Route Table. nextHopIpAddress is the private ip of the hub Azure Firewall')
 param appGwRoutes array = [
   {
     name: 'appGwRoute'
