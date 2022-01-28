@@ -1,10 +1,5 @@
 targetScope = 'subscription'
 
-/*
-  PARAMETERS
-  Here are all the parameters a user can override.
-*/
-
 // REQUIRED PARAMETERS
 
 @description('Required. Subscription GUID.')
@@ -16,9 +11,23 @@ param location string = 'usgovvirginia'
 @description('Required. ResourceGroup Name.')
 param targetResourceGroup string = 'rg-app-gateway-example'
 
-// VIRTUAL NETWORKING PARAMETERS
-@description('Required. Use existing virtual network and subnet.')
-param useExistingVnetandSubnet bool = false
+@description('Required. Creating UTC for deployments.')
+param deploymentNameSuffix string = utcNow()
+
+// Build Options 
+/*
+  First build, set buildKeyVault to true. 
+
+  After the initial build, import the required certificates to your keyvault. 
+
+  Once the certificate is imported:
+  Set buildAppGateway value to true 
+  Set buildKeyVault to false
+  Deploy main.bicep 
+*/
+
+param buildKeyVault bool = false
+param buildAppGateway bool = true
 
 @description('Required. Resource Group name of virtual network if using existing vnet and subnet.')
 param vNetResourceGroupName string = 'rg-app-gateway-example'
@@ -28,11 +37,11 @@ param vNetAddressPrefixes array = [
   '172.19.0.0/16'
 ]
 
-@description('Required. The subnet Name of ASEv3.')
-param aseSubnetAddressPrefix string = '172.19.0.0/24'
+@description('Required. The Address Prefix of ASE.')
+param aseSubnetAddressPrefix string = '172.19.1.0/24'
 
-@description('Required. The subnet Name of ASEv3.')
-param appGwSubnetAddressPrefix string = '172.19.1.0/24'
+@description('Required. The Address Prefix of AppGw.')
+param appGwSubnetAddressPrefix string = '172.19.0.0/24'
 
 @description('Required. Array of Security Rules to deploy to the Network Security Group.')
 param networkSecurityGroupSecurityRules array = [
@@ -55,42 +64,42 @@ param networkSecurityGroupSecurityRules array = [
   }
 ]
 
+@description('Required. Route Table. nextHopIpAddress is the pip of Azure Firewall')
 param aseRoutes array = [
   {
     name: 'aseRoute'
     addressPrefix: aseSubnetAddressPrefix
-    hasBgpOverride: true
+    hasBgpOverride: false
     nextHopIpAddress: '172.0.100.4' 
     nextHopType: 'VirtualAppliance'
   }
 ]
 
+@description('Required. Route Table. nextHopIpAddress is the pip of Azure Firewall')
 param appGwRoutes array = [
   {
     name: 'appGwRoute'
     addressPrefix: appGwSubnetAddressPrefix
-    hasBgpOverride: true
+    hasBgpOverride: false
     nextHopIpAddress: '172.0.100.4'
     nextHopType: 'VirtualAppliance'
   }
 ]
 
-param disableBgpRoutePropagation bool = false
-
-@description('Required. Creating UTC for deployments.')
-param deploymentNameSuffix string = utcNow()
+@description('Required. Route Table. Select to true, to prevent the propagation of on-premises routes to the network interfaces in associated subnets')
+param disableBgpRoutePropagation bool = true
 
 // If peering update this value
 @description('Required. Exisisting vNet Name for Peering.')
-param existingRemoteVirtualNetworkName string = ''
+param existingRemoteVirtualNetworkName string = 'vnet-hub-til-usgovvirginia-001'
 
 // If peering update this value
 @description('Required. Exisisting vNet Resource Group for Peering.')
-param existingRemoteVirtualNetworkResourceGroupName string = ''
+param existingRemoteVirtualNetworkResourceGroupName string = 'rg-hub-til-001'
 
 // If peering update this value 
 @description('Required. Setup Peering.')
-param usePeering bool = false
+param usePeering bool = true
 
 // Application Gateway Parameters 
 param sslCertificateName string = 'cert'
@@ -103,7 +112,6 @@ param dnsZoneName string = 'mikedzikowski.com'
 param hostnames array = [
   '*.${dnsZoneName}'
 ]
-
 // APPLICATION GATEWAY PARAMETERS 
 @description('Integer containing port number')
 param port int = 443
@@ -185,17 +193,7 @@ param webApplicationFirewall object = {
 @description('ASE kind | ASEV3 | ASEV2')
 param aseKind string = 'ASEV3'
 
-// Build Options 
-/*
-  First build, set buildKeyVault to true. 
-
-  After the initial build, import the required certificates to your keyvault. 
-  Once the certificate is imported, set buildAppGateway value to true and buildKeyVault to false and run this deployment again. 
-
-*/
-
-param buildKeyVault bool = false
-param buildAppGateway bool = true
+param aseLbMode string = 'Web, Publishing'
 
 // NAMING CONVENTION RULES
 /*
@@ -269,8 +267,6 @@ var aseSubnet = [
   }
 ]
 
-
-
 module rg 'modules/resourceGroup.bicep' = {
   name: 'resourceGroup-deployment-${deploymentNameSuffix}'
   scope: subscription(subscriptionId)
@@ -295,8 +291,8 @@ module names 'modules/namingConvention.bicep' = {
   ]
 }
 
-module aseRouteTable 'modules/udr.bicep' = {
-  name: 'ase-udr-deployment-${deploymentNameSuffix}'
+module appGwRouteTable 'modules/udr.bicep' = {
+  name: 'appgw-udr-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     routes:appGwRoutes
@@ -309,14 +305,14 @@ module aseRouteTable 'modules/udr.bicep' = {
   ]
 }
 
-module appGwRouteTable 'modules/udr.bicep' = {
-  name: 'appgw-udr-deployment-${deploymentNameSuffix}'
+module aseRouteTable 'modules/udr.bicep' = {
+  name: 'ase-udr-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
     routes:aseRoutes
     disableBgpRoutePropagation: disableBgpRoutePropagation
     location: location
-    udrName: gwUdrAddressNamingConvention
+    udrName: gwUdrAddressNamingConvention 
   }
   dependsOn: [
     rg
@@ -332,7 +328,7 @@ module msi 'modules/managedIdentity.bicep' = {
   }
 }
 
-module keyvault 'modules/keyVault.bicep' = if (buildKeyVault == 'notDeploy') {
+module keyvault 'modules/keyVault.bicep' = if (buildKeyVault == true) {
   name: 'keyvault-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
@@ -346,7 +342,7 @@ module keyvault 'modules/keyVault.bicep' = if (buildKeyVault == 'notDeploy') {
   ]
 }
 
-module nsg 'modules/nsg.bicep' = if (!useExistingVnetandSubnet) {
+module nsg 'modules/nsg.bicep' =  {
   name: 'nsg-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
@@ -359,7 +355,7 @@ module nsg 'modules/nsg.bicep' = if (!useExistingVnetandSubnet) {
   ]
 }
 
-module virtualnetwork 'modules/virtualNetwork.bicep' = if (!useExistingVnetandSubnet) {
+module virtualnetwork 'modules/virtualNetwork.bicep' =  {
   name: 'vnet-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, targetResourceGroup)
   params: {
@@ -373,7 +369,7 @@ module virtualnetwork 'modules/virtualNetwork.bicep' = if (!useExistingVnetandSu
     nsg
   ]
 }
-module subnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
+module subnet 'modules/subnet.bicep' = {
   name: 'ase-subnet-delegation-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, vNetResourceGroupName)
   params: {
@@ -382,7 +378,7 @@ module subnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     subnetAddressPrefix: aseSubnetAddressPrefix
     udrName: aseUdrAddressNamingConvention
     disableBgpRoutePropagation: disableBgpRoutePropagation
-    routes: aseRoutes
+    routes: appGwRoutes
     delegations: [
       {
         name: 'Microsoft.Web.hostingEnvironments'
@@ -402,13 +398,13 @@ module subnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
   ]
 }
 
-module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
+module appgwSubnet 'modules/subnet.bicep' = {
   name: 'appgw-subnet-delegation-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(subscriptionId, vNetResourceGroupName)
   params: {
     udrName: gwUdrAddressNamingConvention
     disableBgpRoutePropagation: disableBgpRoutePropagation
-    routes: appGwRoutes
+    routes: aseRoutes
     virtualNetworkName: virtualNetworkNamingConvention
     subnetName: appGwSubnetNamingConvention
     subnetAddressPrefix: appGwSubnetAddressPrefix
@@ -421,6 +417,7 @@ module appgwSubnet 'modules/subnet.bicep' = if (!useExistingVnetandSubnet) {
     nsg
     aseRouteTable
     appGwRouteTable
+    subnet
   ]
 }
 module asev3 'modules/appServiceEnvironment.bicep' = {
@@ -431,12 +428,14 @@ module asev3 'modules/appServiceEnvironment.bicep' = {
     aseVnetId: virtualnetwork.outputs.vNetId
     aseSubnetName: aseSubnetNamingConvention
     kind: aseKind
+    aseLbMode: aseLbMode 
   }
   dependsOn: [
     virtualnetwork
     rg
     names
     nsg
+    subnet
   ]
 }
 

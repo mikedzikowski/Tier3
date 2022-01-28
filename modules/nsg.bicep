@@ -1,10 +1,6 @@
-@description('Required. Array of Security Rules to deploy to the Network Security Group.')
+
 param networkSecurityGroupSecurityRules array
-
-@description('location')
 param location string = resourceGroup().location
-
-@description('nsgName')
 param nsgName string
 
 resource networksecuritygroup 'Microsoft.Network/networkSecurityGroups@2020-11-01' =  {

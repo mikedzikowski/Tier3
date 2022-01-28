@@ -1,4 +1,3 @@
-@description('Storage Account type')
 @allowed([
   'Premium_LRS'
   'Premium_ZRS'
@@ -10,14 +9,8 @@
   'Standard_ZRS'
 ])
 param storageAccountType string 
-
-@description('Location for all resources.')
 param location string = resourceGroup().location
-
-@description('The name of the Storage Account')
 param storageAccountName string = 'store${uniqueString(resourceGroup().id)}'
-
-@description('Enable or disable Advanced Threat Protection.')
 param advancedThreatProtectionEnabled bool = true
 
 resource sa 'Microsoft.Storage/storageAccounts@2021-04-01' = {

@@ -1,13 +1,13 @@
 
-param location string  = resourceGroup().location
-param aseLbMode int = 3
+param location string = resourceGroup().location
+param aseLbMode string 
 param aseName string
 param aseSubnetName string 
 param aseVnetId string
-param kind string = 'ASEV3'
+param kind string
 
 var subnetId  = '${aseVnetId}/Subnets/${aseSubnetName}'
-resource asev3 'Microsoft.Web/hostingEnvironments@2021-01-01' = {  
+resource ase 'Microsoft.Web/hostingEnvironments@2021-01-01' = {  
   name: aseName
   location: location
   kind: kind
@@ -18,5 +18,5 @@ resource asev3 'Microsoft.Web/hostingEnvironments@2021-01-01' = {
     }
   }
 }
-output dnssuffix string = asev3.properties.dnsSuffix
-output hostingid string = asev3.id
+output dnssuffix string = ase.properties.dnsSuffix
+output hostingid string = ase.id

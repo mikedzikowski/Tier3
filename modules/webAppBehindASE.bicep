@@ -1,20 +1,10 @@
-@description('Specifies region for all resources')
 param location string = resourceGroup().location
-
-@description('Specifies managed identity name')
 param managedIdentityName string
-
 param aseName string
-
 param hostingPlanName string
-
-@description('Specifies hid')
 param hostingPlanID string = resourceId('Microsoft.Web/serverfarms/', hostingPlanName)
-
 param hostingEnvironmentProfile string = resourceId('Microsoft.Web/hostingEnvironments/', aseName)
-
 param httpsEnable bool = true
-
 param appName string 
 
 resource msi 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30'existing = {

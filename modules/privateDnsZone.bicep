@@ -1,10 +1,5 @@
-@description('Required. ASE name.')
 param aseName string
-
-@description('Required. Private DNS zone name.')
 param privateDNSZoneName string
-
-@description('Required. Network Id.')
 param virtualNetworkId string
 
 resource aseConfig 'Microsoft.Web/hostingEnvironments/configurations@2021-01-15' existing = {

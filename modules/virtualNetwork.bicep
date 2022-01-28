@@ -1,13 +1,6 @@
-@description('Required. Array of vNet address to deploy.')
 param vNetAddressPrefixes array
-
-@description('Required. Array of vNet address to deploy.')
 param location string = resourceGroup().location
-
-@description('Required. vNet Name.')
 param virtualNetworkName string
-
-@description('Required. Array of subnets to deploy.')
 param subnets array
 
 resource virtualnetwork 'Microsoft.Network/virtualNetworks@2020-11-01' = {

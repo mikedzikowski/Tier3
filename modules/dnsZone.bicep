@@ -1,5 +1,5 @@
 param dnsZoneName string
-param location string
+param location string = resourceGroup().location
 param appName string
 param publicIpAddress string
 

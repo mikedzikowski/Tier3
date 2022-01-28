@@ -1,6 +1,6 @@
 param subscriptionId string
-param resourceGroup string
 param location string 
+param resourceGroup string
 param applicationGatewayName string 
 param vNetName string 
 param subnetName string 
@@ -35,7 +35,7 @@ var backendHttpSettingsName = '${applicationGatewayName}-https-setting'
 var gatewayIPConfigurationsName = '${applicationGatewayName}-gatewayIpConfig'
 var requestRoutingRulesName = '${applicationGatewayName}-https-routingrule'
 
-resource virtualnetwork 'Microsoft.Network/virtualNetworks@2020-11-01'existing = {
+resource virtualnetwork 'Microsoft.Network/virtualNetworks@2020-11-01' existing = {
   name: vNetName
 }
 resource subnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' existing = {
