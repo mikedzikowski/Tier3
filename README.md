@@ -67,9 +67,6 @@ az deployment sub create --name Tier3Deployment --location usgovvirginia  --temp
   
   az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
 */
-
-param buildKeyVault bool = true 
-param buildAppGateway bool = false
 ```
 
 # GitHub Integration #
