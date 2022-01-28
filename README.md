@@ -20,8 +20,10 @@ The subscription and resource group can be changed by providing the resource gro
 
 # Pre-requisites #
 
+- An exisiting Mission Landing Zone deployment.
 - A public DNS name that's used later to point to your application gateway.
 - To use TLS/SSL encryption to the application gateway, a valid public certificate that's used to bind to your application gateway is required.
+- Access policy will be created to import certificate into KeyVault.
 
 # How to build the bicep code #
 
@@ -29,7 +31,7 @@ The subscription and resource group can be changed by providing the resource gro
 bicep build .\main.bicep
 ```
 
-# How to deploy #
+# How to deploy using#
 
 ```plaintext
 az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\main.bicep
