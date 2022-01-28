@@ -31,6 +31,7 @@ resource webrecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
     ttl: 3600
     aRecords: [
       {
+        #disable-next-line BCP053
         ipv4Address: aseConfig.properties.internalInboundIpAddresses[0]
       }
     ]
@@ -44,6 +45,7 @@ resource scmrecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
     ttl: 3600
     aRecords: [
       {
+        #disable-next-line BCP053
         ipv4Address: aseConfig.properties.internalInboundIpAddresses[0]
       }
     ]
@@ -57,6 +59,7 @@ resource atrecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
     ttl: 3600
     aRecords: [
       {
+        #disable-next-line BCP053
         ipv4Address: aseConfig.properties.internalInboundIpAddresses[0]
       }
     ]
