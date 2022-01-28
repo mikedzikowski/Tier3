@@ -47,7 +47,9 @@ az deployment sub create --name KeyVault --location usgovvirginia  --template-fi
   - Once the certificate is imported, in main.bicep: 
   - Set buildKeyVault to false 
   - Set buildAppGateway value to true
-  - Run az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
+  - Run:
+  
+  az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
 
 -- 
 
@@ -61,7 +63,9 @@ az deployment sub create --name Tier3Deployment --location usgovvirginia  --temp
   - After the initial build, import the required certificates to your keyvault. 
   - Once the certificate is imported
   - Set buildAppGateway value to true 
-  - Set buildKeyVault to false and run az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
+  - Set buildKeyVault to false and run:
+  
+  az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
 */
 
 param buildKeyVault bool = true 
