@@ -11,7 +11,7 @@ resource existingLocalVirtualNetworkName_peering_to_remote_vnet 'Microsoft.Netwo
   name: '${existingLocalVirtualNetworkName}/peering-to-remote-vnet'
   properties: {
     allowVirtualNetworkAccess: true
-    allowForwardedTraffic: false
+    allowForwardedTraffic: true
     allowGatewayTransit: false
     useRemoteGateways: false
     remoteVirtualNetwork: {
