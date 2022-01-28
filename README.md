@@ -31,18 +31,37 @@ The subscription and resource group can be changed by providing the resource gro
 bicep build .\main.bicep
 ```
 
-# How to deploy using#
+# Depoyment options using bicep #
 
 ```plaintext
+
+Update main.bicep with required parameters. 
+
+The solution can be deployed using only main.bicep or by building the KeyVault using keyVault.bicep, then deploying main.bicep.
+
+1. Deploy KeyVault using keyVault.bicep 
+
+az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\keyVault.bicep
+
+  - After the initial deployment of the key vault, import the required certificates to your keyvault. This step may require an access policy to be created. 
+  - Once the certificate is imported, in main.bicep: 
+  - Set buildKeyVault to false 
+  - Set buildAppGateway value to true
+  - Run az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
+
+-- 
+
+2. Deploy Application Gateway and ASE Mission Owner Environment using a single main.bicep file
+
 az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\main.bicep
 
-
 /*
-  First build, set buildKeyVault to true. 
+  If KeyVault is not deployed on first build, set buildKeyVault to true. 
 
   - After the initial build, import the required certificates to your keyvault. 
-  - Once the certificate is imported, set buildAppGateway value to true and buildKeyVault to false and run this deployment again. 
-
+  - Once the certificate is imported
+  - Set buildAppGateway value to true 
+  - Set buildKeyVault to false and run az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
 */
 
 param buildKeyVault bool = true 
