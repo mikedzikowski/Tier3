@@ -3,7 +3,7 @@ param existingRemoteVirtualNetworkName string
 param existingRemoteVirtualNetworkResourceGroupName string
 
 resource existingLocalVirtualNetworkName_peering_to_remote_vnet 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2021-02-01' = {
-  name: '${existingLocalVirtualNetworkName}/peering-to-remote-vnet'
+  name: '${existingLocalVirtualNetworkName}/to-vnet-${existingRemoteVirtualNetworkName}'
   properties: {
     allowVirtualNetworkAccess: true
     allowForwardedTraffic: true
