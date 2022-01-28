@@ -20,6 +20,7 @@ resource webSite 'Microsoft.Web/sites@2020-12-01' = {
   }
   properties: {
     serverFarmId: hostingPlanID
+    #disable-next-line BCP036
     hostingEnvironmentProfile: hostingEnvironmentProfile
     httpsOnly: httpsEnable
   }
