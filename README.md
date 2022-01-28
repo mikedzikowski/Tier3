@@ -24,6 +24,7 @@ The subscription and resource group can be changed by providing the resource gro
 - A public DNS name that's used later to point to your application gateway.
 - To use TLS/SSL encryption to the application gateway, a valid public certificate that's used to bind to your application gateway is required.
 - Access policy will be created to import certificate into KeyVault.
+- Azure Firewall Rule to allow traffic to pass to the Application Service Environment subnet over 443.
 
 # How to build the bicep code #
 
