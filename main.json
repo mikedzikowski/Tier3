@@ -1,0 +1,2364 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.18.4.5664",
+      "templateHash": "1985177615447678405"
+    }
+  },
+  "parameters": {
+    "subscriptionId": {
+      "type": "string",
+      "defaultValue": "[subscription().subscriptionId]",
+      "metadata": {
+        "description": "Required. Subscription GUID."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "usgovvirginia",
+      "metadata": {
+        "description": "Required. ResourceGroup location."
+      }
+    },
+    "targetResourceGroup": {
+      "type": "string",
+      "defaultValue": "rg-app-gateway-example",
+      "metadata": {
+        "description": "Required. ResourceGroup Name."
+      }
+    },
+    "deploymentNameSuffix": {
+      "type": "string",
+      "defaultValue": "[utcNow()]",
+      "metadata": {
+        "description": "Required. Creating UTC for deployments."
+      }
+    },
+    "buildKeyVault": {
+      "type": "bool",
+      "defaultValue": true
+    },
+    "buildAppGateway": {
+      "type": "bool",
+      "defaultValue": false
+    },
+    "vNetResourceGroupName": {
+      "type": "string",
+      "defaultValue": "rg-app-gateway-example",
+      "metadata": {
+        "description": "Required. Resource Group name of virtual network if using existing vnet and subnet."
+      }
+    },
+    "vNetAddressPrefixes": {
+      "type": "array",
+      "defaultValue": [
+        "172.19.0.0/16"
+      ],
+      "metadata": {
+        "description": "Required. An Array of 1 or more IP Address Prefixes for the Virtual Network."
+      }
+    },
+    "aseSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "172.19.1.0/24",
+      "metadata": {
+        "description": "Required. The Address Prefix of ASE."
+      }
+    },
+    "appGwSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "172.19.0.0/24",
+      "metadata": {
+        "description": "Required. The Address Prefix of AppGw."
+      }
+    },
+    "networkSecurityGroupSecurityRules": {
+      "type": "array",
+      "defaultValue": [
+        {
+          "name": "Port_443",
+          "properties": {
+            "protocol": "*",
+            "sourcePortRange": "*",
+            "destinationPortRange": "443",
+            "sourceAddressPrefix": "*",
+            "destinationAddressPrefix": "*",
+            "access": "Allow",
+            "priority": "100",
+            "direction": "Inbound",
+            "sourcePortRanges": [],
+            "destinationPortRanges": [],
+            "sourceAddressPrefixes": [],
+            "destinationAddressPrefixes": []
+          }
+        }
+      ],
+      "metadata": {
+        "description": "Required. Array of Security Rules to deploy to the Network Security Group."
+      }
+    },
+    "aseRoutes": {
+      "type": "array",
+      "defaultValue": [
+        {
+          "name": "aseRoute",
+          "addressPrefix": "[parameters('aseSubnetAddressPrefix')]",
+          "hasBgpOverride": false,
+          "nextHopIpAddress": "172.0.100.4",
+          "nextHopType": "VirtualAppliance"
+        }
+      ],
+      "metadata": {
+        "description": "Required. Route Table. nextHopIpAddress is the private ip of the hub Azure Firewall"
+      }
+    },
+    "appGwRoutes": {
+      "type": "array",
+      "defaultValue": [
+        {
+          "name": "appGwRoute",
+          "addressPrefix": "[parameters('appGwSubnetAddressPrefix')]",
+          "hasBgpOverride": false,
+          "nextHopIpAddress": "172.0.100.4",
+          "nextHopType": "VirtualAppliance"
+        }
+      ],
+      "metadata": {
+        "description": "Required. Route Table. nextHopIpAddress is the private ip of the hub Azure Firewall"
+      }
+    },
+    "disableBgpRoutePropagation": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Required. Route Table. Select to true, to prevent the propagation of on-premises routes to the network interfaces in associated subnets"
+      }
+    },
+    "existingRemoteVirtualNetworkName": {
+      "type": "string",
+      "defaultValue": "vnet-hub-til-usgovvirginia-001",
+      "metadata": {
+        "description": "Required. Exisisting vNet Name for Peering."
+      }
+    },
+    "existingRemoteVirtualNetworkResourceGroupName": {
+      "type": "string",
+      "defaultValue": "rg-hub-til-001",
+      "metadata": {
+        "description": "Required. Exisisting vNet Resource Group for Peering."
+      }
+    },
+    "usePeering": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Required. Setup Peering."
+      }
+    },
+    "sslCertificateName": {
+      "type": "string",
+      "defaultValue": "cert"
+    },
+    "dnsZoneName": {
+      "type": "string",
+      "defaultValue": "mikedzikowski.com",
+      "metadata": {
+        "description": "DNS Zone Name"
+      }
+    },
+    "hostnames": {
+      "type": "array",
+      "defaultValue": [
+        "[format('*.{0}', parameters('dnsZoneName'))]"
+      ],
+      "metadata": {
+        "description": "Hostnames for DNS"
+      }
+    },
+    "port": {
+      "type": "int",
+      "defaultValue": 443,
+      "metadata": {
+        "description": "Integer containing port number"
+      }
+    },
+    "tier": {
+      "type": "string",
+      "defaultValue": "WAF_v2",
+      "allowedValues": [
+        "Standard",
+        "WAF",
+        "Standard_v2",
+        "WAF_v2"
+      ],
+      "metadata": {
+        "description": "Application gateway tier"
+      }
+    },
+    "sku": {
+      "type": "string",
+      "defaultValue": "WAF_v2",
+      "allowedValues": [
+        "Standard_Small",
+        "Standard_Medium",
+        "Standard_Large",
+        "WAF_Medium",
+        "WAF_Large",
+        "Standard_v2",
+        "WAF_v2"
+      ],
+      "metadata": {
+        "description": "Application gateway sku"
+      }
+    },
+    "capacity": {
+      "type": "int",
+      "defaultValue": 2,
+      "maxValue": 32,
+      "minValue": 1,
+      "metadata": {
+        "description": "Capacity (instance count) of application gateway"
+      }
+    },
+    "autoScaleMaxCapacity": {
+      "type": "int",
+      "defaultValue": 10,
+      "maxValue": 32,
+      "minValue": 1,
+      "metadata": {
+        "description": "Autoscale capacity (instance count) of application gateway"
+      }
+    },
+    "privateIPAllocationMethod": {
+      "type": "string",
+      "defaultValue": "Dynamic",
+      "metadata": {
+        "description": "Private IP Allocation Method"
+      }
+    },
+    "protocol": {
+      "type": "string",
+      "defaultValue": "Https",
+      "metadata": {
+        "description": "Backend http setting protocol"
+      }
+    },
+    "cookieBasedAffinity": {
+      "type": "string",
+      "defaultValue": "Disabled",
+      "metadata": {
+        "description": "Enabled/Disabled. Configures cookie based affinity."
+      }
+    },
+    "pickHostNameFromBackendAddress": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Pick Hostname From BackEndAddress Setting"
+      }
+    },
+    "requestTimeout": {
+      "type": "int",
+      "defaultValue": 20,
+      "metadata": {
+        "description": "Integer containing backend http setting request timeout"
+      }
+    },
+    "requireServerNameIndication": {
+      "type": "bool",
+      "defaultValue": true
+    },
+    "publicIpSku": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "metadata": {
+        "description": "Public IP Sku"
+      }
+    },
+    "publicIPAllocationMethod": {
+      "type": "string",
+      "defaultValue": "Static",
+      "metadata": {
+        "description": "Public IP Applocation Method"
+      }
+    },
+    "http2Enabled": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable HTTP/2 support"
+      }
+    },
+    "requestRoutingRuleType": {
+      "type": "string",
+      "defaultValue": "Basic",
+      "metadata": {
+        "description": "Request Routing Rule Type"
+      }
+    },
+    "webApplicationFirewall": {
+      "type": "object",
+      "defaultValue": {
+        "enabled": true,
+        "firewallMode": "Detection",
+        "ruleSetType": "OWASP",
+        "ruleSetVersion": "3.2",
+        "disabledRuleGroups": [],
+        "exclusions": [],
+        "requestBodyCheck": true,
+        "maxRequestBodySizeInKb": 128,
+        "fileUploadLimitInMb": 100
+      },
+      "metadata": {
+        "description": "Object containing Web Application Firewall configurations"
+      }
+    },
+    "aseKind": {
+      "type": "string",
+      "defaultValue": "ASEV3",
+      "metadata": {
+        "description": "ASE kind | ASEV3 | ASEV2"
+      }
+    },
+    "aseLbMode": {
+      "type": "string",
+      "defaultValue": "Web, Publishing"
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "development",
+      "allowedValues": [
+        "development",
+        "test",
+        "staging",
+        "production"
+      ]
+    },
+    "function": {
+      "type": "string",
+      "defaultValue": "env"
+    },
+    "index": {
+      "type": "int",
+      "defaultValue": 1
+    },
+    "appName": {
+      "type": "string",
+      "defaultValue": "tier3"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "location": "[deployment().location]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[parameters('targetResourceGroup')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "4209049094623124752"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/resourceGroups",
+              "apiVersion": "2019-05-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "location": {
+              "type": "string",
+              "value": "[reference(subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('name')), '2019-05-01', 'full').location]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "function": {
+            "value": "[parameters('function')]"
+          },
+          "index": {
+            "value": "[parameters('index')]"
+          },
+          "appName": {
+            "value": "[parameters('appName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "2354790533263036596"
+            }
+          },
+          "parameters": {
+            "appName": {
+              "type": "string",
+              "maxLength": 8
+            },
+            "function": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string",
+              "allowedValues": [
+                "development",
+                "test",
+                "staging",
+                "production"
+              ]
+            },
+            "index": {
+              "type": "int"
+            }
+          },
+          "variables": {
+            "functionShort": "[if(greater(length(parameters('function')), 5), substring(parameters('function'), 0, 5), parameters('function'))]",
+            "appNameShort": "[if(greater(length(parameters('appName')), 5), substring(parameters('appName'), 0, 5), parameters('appName'))]",
+            "environmentLetter": "[substring(parameters('environment'), 0, 1)]",
+            "resourceNamePlaceHolder": "[format('{0}-{1}-{2}-[PH]-{3}', parameters('appName'), variables('environmentLetter'), parameters('function'), padLeft(parameters('index'), 2, '0'))]",
+            "resourceNameShortPlaceHolder": "[format('{0}-{1}-{2}-[PH]-{3}', parameters('appName'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]",
+            "dbNamePlaceHolder": "[format('{0}{1}{2}db{3}', parameters('appName'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]",
+            "storageAccountNamePlaceHolder": "[format('{0}{1}{2}sta{3}', parameters('appName'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]",
+            "vmNamePlaceHolder": "[format('{0}-{1}-{2}-{3}', variables('appNameShort'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]",
+            "networkSecurityGroupNamePlaceHolder": "[format('{0}{1}{2}-nsg{3}', parameters('appName'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]"
+          },
+          "resources": [],
+          "outputs": {
+            "resourceName": {
+              "type": "string",
+              "value": "[variables('resourceNamePlaceHolder')]"
+            },
+            "resourceNameShort": {
+              "type": "string",
+              "value": "[variables('resourceNameShortPlaceHolder')]"
+            },
+            "storageAccountName": {
+              "type": "string",
+              "value": "[variables('storageAccountNamePlaceHolder')]"
+            },
+            "dbName": {
+              "type": "string",
+              "value": "[variables('dbNamePlaceHolder')]"
+            },
+            "networkSecurityGroupName": {
+              "type": "string",
+              "value": "[variables('networkSecurityGroupNamePlaceHolder')]"
+            },
+            "vmName": {
+              "type": "string",
+              "value": "[variables('vmNamePlaceHolder')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('appgw-udr-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "routes": {
+            "value": "[parameters('appGwRoutes')]"
+          },
+          "disableBgpRoutePropagation": {
+            "value": "[parameters('disableBgpRoutePropagation')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "udrName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-ase')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "4637848122315144839"
+            }
+          },
+          "parameters": {
+            "udrName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "disableBgpRoutePropagation": {
+              "type": "bool"
+            },
+            "routes": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/routeTables",
+              "apiVersion": "2021-05-01",
+              "name": "[parameters('udrName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "routes",
+                    "count": "[length(parameters('routes'))]",
+                    "input": {
+                      "name": "[parameters('routes')[copyIndex('routes')].name]",
+                      "properties": {
+                        "addressPrefix": "[parameters('routes')[copyIndex('routes')].addressPrefix]",
+                        "hasBgpOverride": "[if(contains(parameters('routes')[copyIndex('routes')], 'hasBgpOverride'), parameters('routes')[copyIndex('routes')].hasBgpOverride, null())]",
+                        "nextHopIpAddress": "[if(contains(parameters('routes')[copyIndex('routes')], 'nextHopIpAddress'), parameters('routes')[copyIndex('routes')].nextHopIpAddress, null())]",
+                        "nextHopType": "[parameters('routes')[copyIndex('routes')].nextHopType]"
+                      }
+                    }
+                  }
+                ],
+                "disableBgpRoutePropagation": "[parameters('disableBgpRoutePropagation')]"
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[parameters('udrName')]"
+            },
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/routeTables', parameters('udrName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('ase-udr-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "routes": {
+            "value": "[parameters('aseRoutes')]"
+          },
+          "disableBgpRoutePropagation": {
+            "value": "[parameters('disableBgpRoutePropagation')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "udrName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-gw')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "4637848122315144839"
+            }
+          },
+          "parameters": {
+            "udrName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "disableBgpRoutePropagation": {
+              "type": "bool"
+            },
+            "routes": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/routeTables",
+              "apiVersion": "2021-05-01",
+              "name": "[parameters('udrName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "routes",
+                    "count": "[length(parameters('routes'))]",
+                    "input": {
+                      "name": "[parameters('routes')[copyIndex('routes')].name]",
+                      "properties": {
+                        "addressPrefix": "[parameters('routes')[copyIndex('routes')].addressPrefix]",
+                        "hasBgpOverride": "[if(contains(parameters('routes')[copyIndex('routes')], 'hasBgpOverride'), parameters('routes')[copyIndex('routes')].hasBgpOverride, null())]",
+                        "nextHopIpAddress": "[if(contains(parameters('routes')[copyIndex('routes')], 'nextHopIpAddress'), parameters('routes')[copyIndex('routes')].nextHopIpAddress, null())]",
+                        "nextHopType": "[parameters('routes')[copyIndex('routes')].nextHopType]"
+                      }
+                    }
+                  }
+                ],
+                "disableBgpRoutePropagation": "[parameters('disableBgpRoutePropagation')]"
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[parameters('udrName')]"
+            },
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/routeTables', parameters('udrName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('managed-identity-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "managedIdentityName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mi')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "17642000279359930689"
+            }
+          },
+          "parameters": {
+            "managedIdentityName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2018-11-30",
+              "name": "[parameters('managedIdentityName')]",
+              "location": "[parameters('location')]"
+            }
+          ],
+          "outputs": {
+            "msiId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+            },
+            "msiName": {
+              "type": "string",
+              "value": "[parameters('managedIdentityName')]"
+            },
+            "msiPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2018-11-30').principalId]"
+            },
+            "msiClienId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2018-11-30').clientId]"
+            },
+            "msiTenantId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2018-11-30').tenantId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('buildKeyVault'), true())]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('keyvault-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "keyVaultName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'kv')]"
+          },
+          "objectId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('managed-identity-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.msiPrincipalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "12550294760075871319"
+            }
+          },
+          "parameters": {
+            "keyVaultName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "enabledForDeployment": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "enabledForDiskEncryption": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "enabledForTemplateDeployment": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "tenantId": {
+              "type": "string",
+              "defaultValue": "[subscription().tenantId]"
+            },
+            "objectId": {
+              "type": "string"
+            },
+            "keysPermissions": {
+              "type": "array",
+              "defaultValue": [
+                "list",
+                "get"
+              ]
+            },
+            "secretsPermissions": {
+              "type": "array",
+              "defaultValue": [
+                "list",
+                "get"
+              ]
+            },
+            "certificatesPermissions": {
+              "type": "array",
+              "defaultValue": [
+                "list",
+                "get"
+              ]
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "standard",
+              "allowedValues": [
+                "standard",
+                "premium"
+              ]
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2021-04-01-preview",
+              "name": "[parameters('keyVaultName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "enabledForDeployment": "[parameters('enabledForDeployment')]",
+                "enabledForDiskEncryption": "[parameters('enabledForDiskEncryption')]",
+                "enabledForTemplateDeployment": "[parameters('enabledForTemplateDeployment')]",
+                "tenantId": "[parameters('tenantId')]",
+                "accessPolicies": [
+                  {
+                    "objectId": "[parameters('objectId')]",
+                    "tenantId": "[parameters('tenantId')]",
+                    "permissions": {
+                      "keys": "[parameters('keysPermissions')]",
+                      "secrets": "[parameters('secretsPermissions')]",
+                      "certificates": "[parameters('certificatesPermissions')]"
+                    }
+                  }
+                ],
+                "sku": {
+                  "name": "[parameters('skuName')]",
+                  "family": "A"
+                },
+                "networkAcls": {
+                  "defaultAction": "Allow",
+                  "bypass": "AzureServices"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('managed-identity-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('nsg-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "nsgName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
+          },
+          "networkSecurityGroupSecurityRules": {
+            "value": "[parameters('networkSecurityGroupSecurityRules')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "8437789619819073140"
+            }
+          },
+          "parameters": {
+            "networkSecurityGroupSecurityRules": {
+              "type": "array"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "nsgName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2020-11-01",
+              "name": "[parameters('nsgName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "securityRules",
+                    "count": "[length(parameters('networkSecurityGroupSecurityRules'))]",
+                    "input": {
+                      "name": "[parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].name]",
+                      "properties": {
+                        "access": "[parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.access]",
+                        "destinationAddressPrefix": "[if(equals(parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.destinationAddressPrefix, ''), json('null'), parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.destinationAddressPrefix)]",
+                        "destinationAddressPrefixes": "[if(equals(length(parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.destinationAddressPrefixes), 0), json('null'), parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.destinationAddressPrefixes)]",
+                        "destinationPortRanges": "[if(equals(length(parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.destinationPortRanges), 0), json('null'), parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.destinationPortRanges)]",
+                        "destinationPortRange": "[if(equals(parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.destinationPortRange, ''), json('null'), parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.destinationPortRange)]",
+                        "direction": "[parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.direction]",
+                        "priority": "[int(parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.priority)]",
+                        "protocol": "[parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.protocol]",
+                        "sourceAddressPrefix": "[if(equals(parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.sourceAddressPrefix, ''), json('null'), parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.sourceAddressPrefix)]",
+                        "sourcePortRanges": "[if(equals(length(parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.sourcePortRanges), 0), json('null'), parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.sourcePortRanges)]",
+                        "sourcePortRange": "[parameters('networkSecurityGroupSecurityRules')[copyIndex('securityRules')].properties.sourcePortRange]"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('vnet-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "virtualNetworkName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'vnet')]"
+          },
+          "vNetAddressPrefixes": {
+            "value": "[parameters('vNetAddressPrefixes')]"
+          },
+          "subnets": {
+            "value": [
+              {
+                "name": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'snet')]",
+                "addressPrefix": "[parameters('aseSubnetAddressPrefix')]",
+                "delegations": [
+                  {
+                    "name": "Microsoft.Web.hostingEnvironments",
+                    "properties": {
+                      "serviceName": "Microsoft.Web/hostingEnvironments"
+                    }
+                  }
+                ],
+                "privateEndpointNetworkPolicies": "Enabled",
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "networkSecurityGroupName": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
+              }
+            ]
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "764043403773010596"
+            }
+          },
+          "parameters": {
+            "vNetAddressPrefixes": {
+              "type": "array"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "virtualNetworkName": {
+              "type": "string"
+            },
+            "subnets": {
+              "type": "array"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2020-11-01",
+              "name": "[parameters('virtualNetworkName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "subnets",
+                    "count": "[length(parameters('subnets'))]",
+                    "input": {
+                      "name": "[parameters('subnets')[copyIndex('subnets')].name]",
+                      "properties": {
+                        "addressPrefix": "[parameters('subnets')[copyIndex('subnets')].addressPrefix]",
+                        "networkSecurityGroup": "[if(empty(parameters('subnets')[copyIndex('subnets')].networkSecurityGroupName), json('null'), json(format('{{\"id\": \"{0}\"}}', resourceId('Microsoft.Network/networkSecurityGroups', parameters('subnets')[copyIndex('subnets')].networkSecurityGroupName))))]",
+                        "delegations": "[parameters('subnets')[copyIndex('subnets')].delegations]"
+                      }
+                    }
+                  }
+                ],
+                "addressSpace": {
+                  "addressPrefixes": "[parameters('vNetAddressPrefixes')]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[parameters('virtualNetworkName')]"
+            },
+            "vNetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+            },
+            "subnets": {
+              "type": "array",
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), '2020-11-01').subnets]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('ase-subnet-delegation-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('vNetResourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "virtualNetworkName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'vnet')]"
+          },
+          "subnetName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'snet')]"
+          },
+          "subnetAddressPrefix": {
+            "value": "[parameters('aseSubnetAddressPrefix')]"
+          },
+          "udrName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-ase')]"
+          },
+          "disableBgpRoutePropagation": {
+            "value": "[parameters('disableBgpRoutePropagation')]"
+          },
+          "routes": {
+            "value": "[parameters('appGwRoutes')]"
+          },
+          "delegations": {
+            "value": [
+              {
+                "name": "Microsoft.Web.hostingEnvironments",
+                "properties": {
+                  "serviceName": "Microsoft.Web/hostingEnvironments"
+                }
+              }
+            ]
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "3428674136532236247"
+            }
+          },
+          "parameters": {
+            "subnetName": {
+              "type": "string"
+            },
+            "subnetAddressPrefix": {
+              "type": "string"
+            },
+            "delegations": {
+              "type": "array"
+            },
+            "virtualNetworkName": {
+              "type": "string"
+            },
+            "udrName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "disableBgpRoutePropagation": {
+              "type": "bool"
+            },
+            "routes": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/subnets",
+              "apiVersion": "2020-11-01",
+              "name": "[format('{0}/{1}', parameters('virtualNetworkName'), parameters('subnetName'))]",
+              "properties": {
+                "addressPrefix": "[parameters('subnetAddressPrefix')]",
+                "delegations": "[parameters('delegations')]",
+                "routeTable": {
+                  "id": "[resourceId('Microsoft.Network/routeTables', parameters('udrName'))]",
+                  "location": "[parameters('location')]",
+                  "properties": {
+                    "copy": [
+                      {
+                        "name": "routes",
+                        "count": "[length(parameters('routes'))]",
+                        "input": {
+                          "name": "[parameters('routes')[copyIndex('routes')].name]",
+                          "properties": {
+                            "addressPrefix": "[parameters('routes')[copyIndex('routes')].addressPrefix]",
+                            "hasBgpOverride": "[if(contains(parameters('routes')[copyIndex('routes')], 'hasBgpOverride'), parameters('routes')[copyIndex('routes')].hasBgpOverride, null())]",
+                            "nextHopIpAddress": "[if(contains(parameters('routes')[copyIndex('routes')], 'nextHopIpAddress'), parameters('routes')[copyIndex('routes')].nextHopIpAddress, null())]",
+                            "nextHopType": "[parameters('routes')[copyIndex('routes')].nextHopType]"
+                          }
+                        }
+                      }
+                    ],
+                    "disableBgpRoutePropagation": "[parameters('disableBgpRoutePropagation')]"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('appgw-udr-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('ase-udr-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('appgw-subnet-delegation-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('vNetResourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "udrName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-gw')]"
+          },
+          "disableBgpRoutePropagation": {
+            "value": "[parameters('disableBgpRoutePropagation')]"
+          },
+          "routes": {
+            "value": "[parameters('aseRoutes')]"
+          },
+          "virtualNetworkName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'vnet')]"
+          },
+          "subnetName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'appgw-snet')]"
+          },
+          "subnetAddressPrefix": {
+            "value": "[parameters('appGwSubnetAddressPrefix')]"
+          },
+          "delegations": {
+            "value": []
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "3428674136532236247"
+            }
+          },
+          "parameters": {
+            "subnetName": {
+              "type": "string"
+            },
+            "subnetAddressPrefix": {
+              "type": "string"
+            },
+            "delegations": {
+              "type": "array"
+            },
+            "virtualNetworkName": {
+              "type": "string"
+            },
+            "udrName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "disableBgpRoutePropagation": {
+              "type": "bool"
+            },
+            "routes": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/subnets",
+              "apiVersion": "2020-11-01",
+              "name": "[format('{0}/{1}', parameters('virtualNetworkName'), parameters('subnetName'))]",
+              "properties": {
+                "addressPrefix": "[parameters('subnetAddressPrefix')]",
+                "delegations": "[parameters('delegations')]",
+                "routeTable": {
+                  "id": "[resourceId('Microsoft.Network/routeTables', parameters('udrName'))]",
+                  "location": "[parameters('location')]",
+                  "properties": {
+                    "copy": [
+                      {
+                        "name": "routes",
+                        "count": "[length(parameters('routes'))]",
+                        "input": {
+                          "name": "[parameters('routes')[copyIndex('routes')].name]",
+                          "properties": {
+                            "addressPrefix": "[parameters('routes')[copyIndex('routes')].addressPrefix]",
+                            "hasBgpOverride": "[if(contains(parameters('routes')[copyIndex('routes')], 'hasBgpOverride'), parameters('routes')[copyIndex('routes')].hasBgpOverride, null())]",
+                            "nextHopIpAddress": "[if(contains(parameters('routes')[copyIndex('routes')], 'nextHopIpAddress'), parameters('routes')[copyIndex('routes')].nextHopIpAddress, null())]",
+                            "nextHopType": "[parameters('routes')[copyIndex('routes')].nextHopType]"
+                          }
+                        }
+                      }
+                    ],
+                    "disableBgpRoutePropagation": "[parameters('disableBgpRoutePropagation')]"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('appgw-udr-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('ase-udr-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('vNetResourceGroupName')), 'Microsoft.Resources/deployments', format('ase-subnet-delegation-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('ase-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "aseName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase')]"
+          },
+          "aseVnetId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.vNetId.value]"
+          },
+          "aseSubnetName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'snet')]"
+          },
+          "kind": {
+            "value": "[parameters('aseKind')]"
+          },
+          "aseLbMode": {
+            "value": "[parameters('aseLbMode')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "6125221847162806564"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "aseLbMode": {
+              "type": "string"
+            },
+            "aseName": {
+              "type": "string"
+            },
+            "aseSubnetName": {
+              "type": "string"
+            },
+            "aseVnetId": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "subnetId": "[format('{0}/Subnets/{1}', parameters('aseVnetId'), parameters('aseSubnetName'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/hostingEnvironments",
+              "apiVersion": "2021-01-01",
+              "name": "[parameters('aseName')]",
+              "location": "[parameters('location')]",
+              "kind": "[parameters('kind')]",
+              "properties": {
+                "internalLoadBalancingMode": "[parameters('aseLbMode')]",
+                "virtualNetwork": {
+                  "id": "[variables('subnetId')]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "dnssuffix": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/hostingEnvironments', parameters('aseName')), '2021-01-01').dnsSuffix]"
+            },
+            "hostingid": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Web/hostingEnvironments', parameters('aseName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('vNetResourceGroupName')), 'Microsoft.Resources/deployments', format('ase-subnet-delegation-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('app-serviceplan-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appServicePlanName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'sp')]"
+          },
+          "hostingEnvironmentId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.hostingid.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "15474249554027371064"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "appServicePlanName": {
+              "type": "string"
+            },
+            "appServicePlanKind": {
+              "type": "string",
+              "defaultValue": "windows"
+            },
+            "appServicePlanSku": {
+              "type": "object",
+              "defaultValue": {
+                "Name": "I1v2",
+                "tier": "IsolatedV2"
+              }
+            },
+            "appServicePlanWorkerCount": {
+              "type": "int",
+              "defaultValue": 3
+            },
+            "appServicePlanWorkerSize": {
+              "type": "int",
+              "defaultValue": 6
+            },
+            "hostingEnvironmentId": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "hostingEnvironmentProfile": {
+              "id": "[parameters('hostingEnvironmentId')]"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2019-08-01",
+              "name": "[parameters('appServicePlanName')]",
+              "kind": "[parameters('appServicePlanKind')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "hostingEnvironmentProfile": "[variables('hostingEnvironmentProfile')]",
+                "perSiteScaling": false,
+                "reserved": false,
+                "targetWorkerCount": "[parameters('appServicePlanWorkerCount')]",
+                "targetWorkerSizeId": "[parameters('appServicePlanWorkerSize')]"
+              },
+              "sku": "[parameters('appServicePlanSku')]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('private-dns-zone-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "privateDNSZoneName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.dnssuffix.value]"
+          },
+          "virtualNetworkId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.vNetId.value]"
+          },
+          "aseName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "6469470738007728081"
+            }
+          },
+          "parameters": {
+            "aseName": {
+              "type": "string"
+            },
+            "privateDNSZoneName": {
+              "type": "string"
+            },
+            "virtualNetworkId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[parameters('privateDNSZoneName')]",
+              "location": "global",
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('privateDNSZoneName'), 'vnetLink')]",
+              "location": "global",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[parameters('virtualNetworkId')]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDNSZoneName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/A",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('privateDNSZoneName'), '*')]",
+              "properties": {
+                "ttl": 3600,
+                "aRecords": [
+                  {
+                    "ipv4Address": "[reference(resourceId('Microsoft.Web/hostingEnvironments/configurations', split(format('{0}/networking', parameters('aseName')), '/')[0], split(format('{0}/networking', parameters('aseName')), '/')[1]), '2021-01-15').internalInboundIpAddresses[0]]"
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDNSZoneName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/A",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('privateDNSZoneName'), '*.scm')]",
+              "properties": {
+                "ttl": 3600,
+                "aRecords": [
+                  {
+                    "ipv4Address": "[reference(resourceId('Microsoft.Web/hostingEnvironments/configurations', split(format('{0}/networking', parameters('aseName')), '/')[0], split(format('{0}/networking', parameters('aseName')), '/')[1]), '2021-01-15').internalInboundIpAddresses[0]]"
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDNSZoneName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/A",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('privateDNSZoneName'), '@')]",
+              "properties": {
+                "ttl": 3600,
+                "aRecords": [
+                  {
+                    "ipv4Address": "[reference(resourceId('Microsoft.Web/hostingEnvironments/configurations', split(format('{0}/networking', parameters('aseName')), '/')[0], split(format('{0}/networking', parameters('aseName')), '/')[1]), '2021-01-15').internalInboundIpAddresses[0]]"
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDNSZoneName'))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('web-app-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "managedIdentityName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mi')]"
+          },
+          "aseName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase')]"
+          },
+          "hostingPlanName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'sp')]"
+          },
+          "appName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'web')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "7679431570384837954"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "managedIdentityName": {
+              "type": "string"
+            },
+            "aseName": {
+              "type": "string"
+            },
+            "hostingPlanName": {
+              "type": "string"
+            },
+            "hostingPlanID": {
+              "type": "string",
+              "defaultValue": "[resourceId('Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]"
+            },
+            "hostingEnvironmentProfile": {
+              "type": "string",
+              "defaultValue": "[resourceId('Microsoft.Web/hostingEnvironments/', parameters('aseName'))]"
+            },
+            "httpsEnable": {
+              "type": "bool",
+              "defaultValue": true
+            },
+            "appName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2020-12-01",
+              "name": "[parameters('appName')]",
+              "location": "[parameters('location')]",
+              "tags": {
+                "[format('hidden-related:{0}', parameters('hostingPlanID'))]": "empty",
+                "displayName": "Website"
+              },
+              "properties": {
+                "serverFarmId": "[parameters('hostingPlanID')]",
+                "hostingEnvironmentProfile": "[parameters('hostingEnvironmentProfile')]",
+                "httpsOnly": "[parameters('httpsEnable')]"
+              },
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')))]": {}
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "scope": "[format('Microsoft.Web/sites/{0}', parameters('appName'))]",
+              "name": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), resourceGroup().id, 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+              "properties": {
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2018-11-30').principalId]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('appName'))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('app-serviceplan-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('usePeering')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "existingLocalVirtualNetworkName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
+          },
+          "existingRemoteVirtualNetworkName": {
+            "value": "[parameters('existingRemoteVirtualNetworkName')]"
+          },
+          "existingRemoteVirtualNetworkResourceGroupName": {
+            "value": "[parameters('existingRemoteVirtualNetworkResourceGroupName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "2882873478119380951"
+            }
+          },
+          "parameters": {
+            "existingLocalVirtualNetworkName": {
+              "type": "string"
+            },
+            "existingRemoteVirtualNetworkName": {
+              "type": "string"
+            },
+            "existingRemoteVirtualNetworkResourceGroupName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+              "apiVersion": "2021-02-01",
+              "name": "[format('{0}/to-vnet-{1}', parameters('existingLocalVirtualNetworkName'), parameters('existingRemoteVirtualNetworkName'))]",
+              "properties": {
+                "allowVirtualNetworkAccess": true,
+                "allowForwardedTraffic": true,
+                "allowGatewayTransit": false,
+                "useRemoteGateways": false,
+                "remoteVirtualNetwork": {
+                  "id": "[resourceId(parameters('existingRemoteVirtualNetworkResourceGroupName'), 'Microsoft.Network/virtualNetworks', parameters('existingRemoteVirtualNetworkName'))]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('usePeering')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('spoke-peering-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('existingRemoteVirtualNetworkResourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "existingLocalVirtualNetworkName": {
+            "value": "[parameters('existingRemoteVirtualNetworkName')]"
+          },
+          "existingRemoteVirtualNetworkName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
+          },
+          "existingRemoteVirtualNetworkResourceGroupName": {
+            "value": "[parameters('targetResourceGroup')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "2882873478119380951"
+            }
+          },
+          "parameters": {
+            "existingLocalVirtualNetworkName": {
+              "type": "string"
+            },
+            "existingRemoteVirtualNetworkName": {
+              "type": "string"
+            },
+            "existingRemoteVirtualNetworkResourceGroupName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+              "apiVersion": "2021-02-01",
+              "name": "[format('{0}/to-vnet-{1}', parameters('existingLocalVirtualNetworkName'), parameters('existingRemoteVirtualNetworkName'))]",
+              "properties": {
+                "allowVirtualNetworkAccess": true,
+                "allowForwardedTraffic": true,
+                "allowGatewayTransit": false,
+                "useRemoteGateways": false,
+                "remoteVirtualNetwork": {
+                  "id": "[resourceId(parameters('existingRemoteVirtualNetworkResourceGroupName'), 'Microsoft.Network/virtualNetworks', parameters('existingRemoteVirtualNetworkName'))]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('buildAppGateway')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('applicationGateway-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "subscriptionId": {
+            "value": "[parameters('subscriptionId')]"
+          },
+          "resourceGroup": {
+            "value": "[parameters('targetResourceGroup')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "applicationGatewayName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'gw')]"
+          },
+          "vNetName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'vnet')]"
+          },
+          "subnetName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'appgw-snet')]"
+          },
+          "webAppFqdn": {
+            "value": "[format('{0}.{1}.appserviceenvironment.us', replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'web'), replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase'))]"
+          },
+          "keyVaultSecretid": {
+            "value": "[format('https://{0}.vault.usgovcloudapi.net/secrets/{1}', replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'kv'), parameters('sslCertificateName'))]"
+          },
+          "sslCertificateName": {
+            "value": "[parameters('sslCertificateName')]"
+          },
+          "managedIdentityName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mi')]"
+          },
+          "hostnames": {
+            "value": "[parameters('hostnames')]"
+          },
+          "port": {
+            "value": "[parameters('port')]"
+          },
+          "tier": {
+            "value": "[parameters('tier')]"
+          },
+          "sku": {
+            "value": "[parameters('sku')]"
+          },
+          "capacity": {
+            "value": "[parameters('capacity')]"
+          },
+          "autoScaleMaxCapacity": {
+            "value": "[parameters('autoScaleMaxCapacity')]"
+          },
+          "privateIPAllocationMethod": {
+            "value": "[parameters('privateIPAllocationMethod')]"
+          },
+          "protocol": {
+            "value": "[parameters('protocol')]"
+          },
+          "cookieBasedAffinity": {
+            "value": "[parameters('cookieBasedAffinity')]"
+          },
+          "pickHostNameFromBackendAddress": {
+            "value": "[parameters('pickHostNameFromBackendAddress')]"
+          },
+          "requestTimeout": {
+            "value": "[parameters('requestTimeout')]"
+          },
+          "requireServerNameIndication": {
+            "value": "[parameters('requireServerNameIndication')]"
+          },
+          "publicIpAddressName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'pip')]"
+          },
+          "publicIpSku": {
+            "value": "[parameters('publicIpSku')]"
+          },
+          "publicIPAllocationMethod": {
+            "value": "[parameters('publicIPAllocationMethod')]"
+          },
+          "http2Enabled": {
+            "value": "[parameters('http2Enabled')]"
+          },
+          "requestRoutingRuleType": {
+            "value": "[parameters('requestRoutingRuleType')]"
+          },
+          "webApplicationFirewall": {
+            "value": "[parameters('webApplicationFirewall')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "16211422465740834606"
+            }
+          },
+          "parameters": {
+            "subscriptionId": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "resourceGroup": {
+              "type": "string"
+            },
+            "applicationGatewayName": {
+              "type": "string"
+            },
+            "vNetName": {
+              "type": "string"
+            },
+            "subnetName": {
+              "type": "string"
+            },
+            "webAppFqdn": {
+              "type": "string"
+            },
+            "keyVaultSecretid": {
+              "type": "string"
+            },
+            "sslCertificateName": {
+              "type": "string"
+            },
+            "managedIdentityName": {
+              "type": "string"
+            },
+            "hostnames": {
+              "type": "array",
+              "defaultValue": []
+            },
+            "port": {
+              "type": "int"
+            },
+            "tier": {
+              "type": "string"
+            },
+            "sku": {
+              "type": "string"
+            },
+            "capacity": {
+              "type": "int"
+            },
+            "autoScaleMaxCapacity": {
+              "type": "int"
+            },
+            "privateIPAllocationMethod": {
+              "type": "string"
+            },
+            "protocol": {
+              "type": "string"
+            },
+            "cookieBasedAffinity": {
+              "type": "string"
+            },
+            "pickHostNameFromBackendAddress": {
+              "type": "bool"
+            },
+            "requestTimeout": {
+              "type": "int"
+            },
+            "requireServerNameIndication": {
+              "type": "bool"
+            },
+            "publicIpAddressName": {
+              "type": "string"
+            },
+            "publicIpSku": {
+              "type": "string"
+            },
+            "publicIPAllocationMethod": {
+              "type": "string"
+            },
+            "http2Enabled": {
+              "type": "bool"
+            },
+            "requestRoutingRuleType": {
+              "type": "string"
+            },
+            "webApplicationFirewall": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "variables": {
+            "frontendIPConfigurationName": "[format('{0}-publicFrontendIp', parameters('applicationGatewayName'))]",
+            "frontendPortName": "[format('port_{0}', parameters('port'))]",
+            "httpslistenerName": "[format('{0}-https-listener', parameters('applicationGatewayName'))]",
+            "backendAddressPoolName": "[format('{0}-backend-pool', parameters('applicationGatewayName'))]",
+            "backendHttpSettingsName": "[format('{0}-https-setting', parameters('applicationGatewayName'))]",
+            "gatewayIPConfigurationsName": "[format('{0}-gatewayIpConfig', parameters('applicationGatewayName'))]",
+            "requestRoutingRulesName": "[format('{0}-https-routingrule', parameters('applicationGatewayName'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2021-03-01",
+              "name": "[parameters('publicIpAddressName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('publicIpSku')]"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "[parameters('publicIPAllocationMethod')]"
+              }
+            },
+            {
+              "type": "Microsoft.Network/applicationGateways",
+              "apiVersion": "2020-11-01",
+              "name": "[parameters('applicationGatewayName')]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')))]": {}
+                }
+              },
+              "properties": {
+                "sku": {
+                  "name": "[parameters('sku')]",
+                  "tier": "[parameters('tier')]"
+                },
+                "gatewayIPConfigurations": [
+                  {
+                    "name": "[variables('gatewayIPConfigurationsName')]",
+                    "properties": {
+                      "subnet": {
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', split(format('{0}/{1}', parameters('vNetName'), parameters('subnetName')), '/')[0], split(format('{0}/{1}', parameters('vNetName'), parameters('subnetName')), '/')[1])]"
+                      }
+                    }
+                  }
+                ],
+                "sslCertificates": [
+                  {
+                    "name": "[parameters('sslCertificateName')]",
+                    "properties": {
+                      "keyVaultSecretId": "[parameters('keyVaultSecretid')]"
+                    }
+                  }
+                ],
+                "trustedRootCertificates": [],
+                "trustedClientCertificates": [],
+                "sslProfiles": [],
+                "frontendIPConfigurations": [
+                  {
+                    "name": "[variables('frontendIPConfigurationName')]",
+                    "properties": {
+                      "privateIPAllocationMethod": "[parameters('privateIPAllocationMethod')]",
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpAddressName'))]"
+                      }
+                    }
+                  }
+                ],
+                "frontendPorts": [
+                  {
+                    "name": "[variables('frontendPortName')]",
+                    "properties": {
+                      "port": "[parameters('port')]"
+                    }
+                  }
+                ],
+                "backendAddressPools": [
+                  {
+                    "name": "[variables('backendAddressPoolName')]",
+                    "properties": {
+                      "backendAddresses": [
+                        {
+                          "fqdn": "[parameters('webAppFqdn')]"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "backendHttpSettingsCollection": [
+                  {
+                    "name": "[variables('backendHttpSettingsName')]",
+                    "properties": {
+                      "port": "[parameters('port')]",
+                      "protocol": "[parameters('protocol')]",
+                      "cookieBasedAffinity": "[parameters('cookieBasedAffinity')]",
+                      "pickHostNameFromBackendAddress": "[parameters('pickHostNameFromBackendAddress')]",
+                      "requestTimeout": "[parameters('requestTimeout')]"
+                    }
+                  }
+                ],
+                "httpListeners": [
+                  {
+                    "name": "[variables('httpslistenerName')]",
+                    "properties": {
+                      "frontendIPConfiguration": {
+                        "id": "[concat(format('/subscriptions/{0}/resourcegroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/frontendIPConfigurations/{3}', parameters('subscriptionId'), parameters('resourceGroup'), parameters('applicationGatewayName'), variables('frontendIPConfigurationName')))]"
+                      },
+                      "frontendPort": {
+                        "id": "[concat(format('/subscriptions/{0}/resourcegroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/frontendPorts/{3}', parameters('subscriptionId'), parameters('resourceGroup'), parameters('applicationGatewayName'), variables('frontendPortName')))]"
+                      },
+                      "protocol": "[parameters('protocol')]",
+                      "sslCertificate": {
+                        "id": "[concat(format('/subscriptions/{0}/resourcegroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/sslCertificates/{3}', parameters('subscriptionId'), parameters('resourceGroup'), parameters('applicationGatewayName'), parameters('sslCertificateName')))]"
+                      },
+                      "hostNames": "[parameters('hostnames')]",
+                      "requireServerNameIndication": "[parameters('requireServerNameIndication')]"
+                    }
+                  }
+                ],
+                "urlPathMaps": [],
+                "requestRoutingRules": [
+                  {
+                    "name": "[variables('requestRoutingRulesName')]",
+                    "properties": {
+                      "ruleType": "[parameters('requestRoutingRuleType')]",
+                      "httpListener": {
+                        "id": "[concat(format('/subscriptions/{0}/resourcegroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/httpListeners/{3}', parameters('subscriptionId'), parameters('resourceGroup'), parameters('applicationGatewayName'), variables('httpslistenerName')))]"
+                      },
+                      "backendAddressPool": {
+                        "id": "[concat(format('/subscriptions/{0}/resourcegroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/backendAddressPools/{3}', parameters('subscriptionId'), parameters('resourceGroup'), parameters('applicationGatewayName'), variables('backendAddressPoolName')))]"
+                      },
+                      "backendHttpSettings": {
+                        "id": "[concat(format('/subscriptions/{0}/resourcegroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/backendHttpSettingsCollection/{3}', parameters('subscriptionId'), parameters('resourceGroup'), parameters('applicationGatewayName'), variables('backendHttpSettingsName')))]"
+                      }
+                    }
+                  }
+                ],
+                "probes": [],
+                "rewriteRuleSets": [],
+                "redirectConfigurations": [],
+                "privateLinkConfigurations": [],
+                "webApplicationFirewallConfiguration": "[parameters('webApplicationFirewall')]",
+                "enableHttp2": "[parameters('http2Enabled')]",
+                "autoscaleConfiguration": {
+                  "minCapacity": "[parameters('capacity')]",
+                  "maxCapacity": "[parameters('autoScaleMaxCapacity')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpAddressName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "publicIpAddress": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpAddressName')), '2021-03-01').ipAddress]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('vNetResourceGroupName')), 'Microsoft.Resources/deployments', format('appgw-subnet-delegation-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('managed-identity-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[subscriptionResourceId(parameters('subscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('vNetResourceGroupName')), 'Microsoft.Resources/deployments', format('ase-subnet-delegation-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('buildAppGateway')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('dnsZone-deployment-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('targetResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "dnsZoneName": {
+            "value": "[parameters('dnsZoneName')]"
+          },
+          "location": {
+            "value": "Global"
+          },
+          "appName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'web')]"
+          },
+          "publicIpAddress": "[if(parameters('buildAppGateway'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('applicationGateway-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.publicIpAddress.value), createObject('value', ''))]"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.18.4.5664",
+              "templateHash": "2018785894415904953"
+            }
+          },
+          "parameters": {
+            "dnsZoneName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "appName": {
+              "type": "string"
+            },
+            "publicIpAddress": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/dnsZones",
+              "apiVersion": "2018-05-01",
+              "name": "[parameters('dnsZoneName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "zoneType": "Public"
+              }
+            },
+            {
+              "type": "Microsoft.Network/dnsZones/A",
+              "apiVersion": "2018-05-01",
+              "name": "[format('{0}/{1}', parameters('dnsZoneName'), parameters('appName'))]",
+              "properties": {
+                "TTL": 3600,
+                "ARecords": [
+                  {
+                    "ipv4Address": "[parameters('publicIpAddress')]"
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/dnsZones', parameters('dnsZoneName'))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('applicationGateway-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('nsg-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('private-dns-zone-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('subscriptionId'), parameters('targetResourceGroup')), 'Microsoft.Resources/deployments', format('vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    }
+  ]
+}
