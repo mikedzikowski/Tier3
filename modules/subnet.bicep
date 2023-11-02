@@ -5,15 +5,34 @@ param virtualNetworkName string
 param udrName string
 param location string = resourceGroup().location
 param disableBgpRoutePropagation bool
-param routes array = []
+param aseSubnetAddressPrefix string
+param azureFirewallIpAddress string
+param appGwSubnetAddressPrefix string
+var routes = [
+  {
+    name: 'appGwRoute'
+    addressPrefix: appGwSubnetAddressPrefix
+    hasBgpOverride: false
+    nextHopIpAddress: azureFirewallIpAddress
+    nextHopType: 'VirtualAppliance'
+  }
+  {
+    name: 'aseRoute'
+    addressPrefix: aseSubnetAddressPrefix
+    hasBgpOverride: false
+    nextHopIpAddress: azureFirewallIpAddress
+    nextHopType: 'VirtualAppliance'
+  }
+]
 
 resource virtualnetwork 'Microsoft.Network/virtualNetworks@2020-11-01'existing = {
   name: virtualNetworkName
 }
 
-resource udr 'Microsoft.Network/routeTables@2021-05-01'existing = {
+resource useDefinedRoute 'Microsoft.Network/routeTables@2021-05-01'existing = {
     name: udrName
 }
+
 resource subnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = {
   name: subnetName
   parent: virtualnetwork
@@ -21,7 +40,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = {
     addressPrefix: subnetAddressPrefix
     delegations: delegations
     routeTable:  {
-      id: udr.id
+      id: useDefinedRoute.id
       location: location
       properties: {
         disableBgpRoutePropagation: disableBgpRoutePropagation

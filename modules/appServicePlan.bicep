@@ -1,19 +1,19 @@
-param location string = resourceGroup().location
-param appServicePlanName string
 param appServicePlanKind string = 'windows'
+param appServicePlanName string
+param appServicePlanWorkerCount int = 3
+param appServicePlanWorkerSize int  = 6
 param appServicePlanSku object  = {
   Name: 'I1v2'
   tier: 'IsolatedV2'
 }
-param appServicePlanWorkerCount int = 3
-param appServicePlanWorkerSize int  = 6
 param hostingEnvironmentId string
+param location string = resourceGroup().location
 
 var hostingEnvironmentProfile = {
   id: hostingEnvironmentId
 }
 
-resource appServicePlanName_resource 'Microsoft.Web/serverfarms@2019-08-01' = {
+resource serverFarm 'Microsoft.Web/serverfarms@2019-08-01' = {
   kind: appServicePlanKind
   name: appServicePlanName
   location: location
@@ -26,3 +26,5 @@ resource appServicePlanName_resource 'Microsoft.Web/serverfarms@2019-08-01' = {
   }
   sku: appServicePlanSku
 }
+
+output appServicePlanName string = serverFarm.name

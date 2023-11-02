@@ -1,13 +1,13 @@
-param managedIdentityName string
 param location string
+param managedIdentityName string
 
-resource msi 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
+resource uami 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
   name: managedIdentityName
   location: location
 }
 
-output msiId string = msi.id
-output msiName string = msi.name
-output msiPrincipalId string = msi.properties.principalId
-output msiClienId string = msi.properties.clientId
-output msiTenantId string = msi.properties.tenantId
+output uamiId string = uami.id
+output uamiName string = uami.name
+output uamiPrincipalId string = uami.properties.principalId
+output uamiClienId string = uami.properties.clientId
+output uamiTenantId string = uami.properties.tenantId

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "subscriptionId": {
+      "value": ""
+    },
+    "hubSubscriptionId": {
+      "value": ""
+    },
+    "azureFirewallName": {
+      "value": ""
+    },
+    "hubResourceGroup": {
+      "value": ""
+    },
+    "spokeResourceGroup": {
+      "value": ""
+    },
+    "vNetAddressPrefixes": {
+      "value": []
+    },
+    "aseSubnetAddressPrefix": {
+      "value": ""
+    },
+    "appGwSubnetAddressPrefix": {
+      "value": ""
+    },
+    "managementVirtualMachineSubnetAddressPrefix": {
+      "value": ""
+    },
+    "hubVirtualNetworkName": {
+      "value": ""
+    },
+    "dnsZoneName": {
+      "value": ""
+    },
+    "applicationGatewaySslCertificateName": {
+      "value": ""
+    },
+    "applicationGatewaySslCertificateFilename": {
+      "value": ""
+    },
+    "applicationGatewaySslCertificatePassword": {
+      "value": ""
+    },
+    "localAdministratorPassword": {
+      "value": ""
+    },
+    "hubStorageAccountName": {
+      "value": ""
+    },
+    "hubStorageAccountContainerName": {
+      "value": ""
+    }
+  }
+}

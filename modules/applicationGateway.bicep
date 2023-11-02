@@ -1,30 +1,30 @@
-param subscriptionId string
-param location string 
-param resourceGroup string
-param applicationGatewayName string 
-param vNetName string 
-param subnetName string 
-param webAppFqdn string
-param keyVaultSecretid string 
-param sslCertificateName string 
-param managedIdentityName string 
-param hostnames array = []
-param port int
-param tier string
-param sku string 
-param capacity int
+param applicationGatewayName string
+param applicationGatewaySslCertificateName string
 param autoScaleMaxCapacity int
-param privateIPAllocationMethod string
-param protocol string 
-param cookieBasedAffinity string 
+param capacity int
+param cookieBasedAffinity string
+param hostnames array = []
+param http2Enabled bool
+param keyVaultName string
+param location string
+param managedIdentityName string
 param pickHostNameFromBackendAddress bool
+param port int
+param privateIPAllocationMethod string
+param protocol string
+param publicIpAddressName string
+param publicIPAllocationMethod string
+param publicIpSku string
+param requestRoutingRuleType string
 param requestTimeout int
 param requireServerNameIndication bool
-param publicIpAddressName string
-param publicIpSku string
-param publicIPAllocationMethod string
-param http2Enabled bool
-param requestRoutingRuleType string
+param resourceGroup string
+param skuName string
+param subnetName string
+param subscriptionId string
+param tier string
+param virtualNetworkName string
+param webAppFqdn string
 param webApplicationFirewall object = {}
 
 var frontendIPConfigurationName = '${applicationGatewayName}-publicFrontendIp'
@@ -34,17 +34,18 @@ var backendAddressPoolName = '${applicationGatewayName}-backend-pool'
 var backendHttpSettingsName = '${applicationGatewayName}-https-setting'
 var gatewayIPConfigurationsName = '${applicationGatewayName}-gatewayIpConfig'
 var requestRoutingRulesName = '${applicationGatewayName}-https-routingrule'
+var keyVaultSecretId = 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/secrets/${applicationGatewaySslCertificateName}'
 
 resource virtualnetwork 'Microsoft.Network/virtualNetworks@2020-11-01' existing = {
-  name: vNetName
+  name: virtualNetworkName
 }
+
 resource subnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' existing = {
-  name: '${vNetName}/${subnetName}'
+  parent: virtualnetwork
+  name: subnetName
 }
-resource webSite 'Microsoft.Web/sites@2020-12-01' existing = {
-  name: webAppFqdn
-}
-resource msi 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
+
+resource userAssignedManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: managedIdentityName
 }
 
@@ -65,12 +66,12 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' =
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${msi.id}': {}
+      '${userAssignedManagedIdentity.id}': {}
     }
   }
   properties: {
     sku: {
-      name: sku
+      name: skuName
       tier: tier
     }
     gatewayIPConfigurations: [
@@ -85,9 +86,9 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' =
     ]
     sslCertificates: [
       {
-        name: sslCertificateName
+        name: applicationGatewaySslCertificateName
         properties: {
-          keyVaultSecretId: keyVaultSecretid
+          keyVaultSecretId: keyVaultSecretId
         }
       }
     ]
@@ -144,12 +145,12 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' =
           frontendIPConfiguration: {
             id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/frontendIPConfigurations/${frontendIPConfigurationName}')
           }
-         frontendPort: {
+          frontendPort: {
             id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/frontendPorts/${frontendPortName}')
           }
           protocol: protocol
           sslCertificate: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/sslCertificates/${sslCertificateName}')
+            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/sslCertificates/${applicationGatewaySslCertificateName}')
           }
           hostNames: hostnames
           requireServerNameIndication: requireServerNameIndication
@@ -169,7 +170,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' =
             id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/backendAddressPools/${backendAddressPoolName}')
           }
           backendHttpSettings: {
-           id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/backendHttpSettingsCollection/${backendHttpSettingsName}')
+            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/backendHttpSettingsCollection/${backendHttpSettingsName}')
           }
         }
       }

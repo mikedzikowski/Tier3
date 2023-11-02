@@ -21,8 +21,9 @@ resource vnetlink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06
       id: virtualNetworkId
     }
     registrationEnabled: false
-  }
+   }
 }
+
 
 resource webrecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
   parent: privatezone

@@ -1,7 +1,26 @@
 param udrName string
 param location string
 param disableBgpRoutePropagation bool
-param routes array = []
+param appGwSubnetAddressPrefix string
+param aseSubnetAddressPrefix string
+param azureFirewallIpAddress string
+
+var routes = [
+  {
+    name: 'appGwRoute'
+    addressPrefix: appGwSubnetAddressPrefix
+    hasBgpOverride: false
+    nextHopIpAddress: azureFirewallIpAddress
+    nextHopType: 'VirtualAppliance'
+  }
+  {
+    name: 'aseRoute'
+    addressPrefix: aseSubnetAddressPrefix
+    hasBgpOverride: false
+    nextHopIpAddress: azureFirewallIpAddress
+    nextHopType: 'VirtualAppliance'
+  }
+]
 
 resource routeTable 'Microsoft.Network/routeTables@2021-05-01' = {
   name: udrName
@@ -18,6 +37,8 @@ resource routeTable 'Microsoft.Network/routeTables@2021-05-01' = {
       }
     }]
   }
+  dependsOn: []
 }
+
 output name string = routeTable.name
 output id string = routeTable.id

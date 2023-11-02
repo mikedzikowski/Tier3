@@ -1,6 +1,6 @@
+param appName string
 param dnsZoneName string
 param location string = resourceGroup().location
-param appName string
 param publicIpAddress string
 
 resource dnsZone 'Microsoft.Network/dnsZones@2018-05-01' = {

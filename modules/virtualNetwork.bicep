@@ -2,8 +2,13 @@ param vNetAddressPrefixes array
 param location string = resourceGroup().location
 param virtualNetworkName string
 param subnets array
+param udrName string
 
-resource virtualnetwork 'Microsoft.Network/virtualNetworks@2020-11-01' = {
+resource userDefinedRoute 'Microsoft.Network/routeTables@2021-05-01' existing = {
+  name: udrName
+}
+
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2020-11-01' = {
   name: virtualNetworkName
   location: location
   properties: {
@@ -14,13 +19,16 @@ resource virtualnetwork 'Microsoft.Network/virtualNetworks@2020-11-01' = {
       name: item.name
       properties: {
         addressPrefix: item.addressPrefix
-        networkSecurityGroup: (empty(item.networkSecurityGroupName) ? json('null') : json('{"id": "${resourceId('Microsoft.Network/networkSecurityGroups', item.networkSecurityGroupName)}"}'))
+        networkSecurityGroup: (empty(item.networkSecurityGroupName) ? null : json('{"id": "${resourceId('Microsoft.Network/networkSecurityGroups', item.networkSecurityGroupName)}"}'))
         delegations: item.delegations
+        routeTable: {
+          id: userDefinedRoute.id
+        }
       }
     }]
   }
 }
 
-output name string = virtualnetwork.name
-output vNetId string = virtualnetwork.id
-output subnets array = virtualnetwork.properties.subnets
+output name string = virtualNetwork.name
+output vNetId string = virtualNetwork.id
+output subnets array = virtualNetwork.properties.subnets
