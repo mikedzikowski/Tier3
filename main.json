@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "5630682332789189521"
+      "templateHash": "11831640721455155474"
     }
   },
   "parameters": {
@@ -107,9 +107,6 @@
         "description": "Autoscale capacity (instance count) of application gateway"
       }
     },
-    "applicationGatewaySslCertificateName": {
-      "type": "string"
-    },
     "applicationGatewaySslCertificateFilename": {
       "type": "string"
     },
@@ -129,7 +126,7 @@
     },
     "index": {
       "type": "int",
-      "defaultValue": 5
+      "defaultValue": 8
     },
     "appName": {
       "type": "string",
@@ -227,7 +224,8 @@
     "localAdministratorName": "xadmin",
     "requestRoutingRuleType": "Basic",
     "sku": "WAF_v2",
-    "tier": "WAF_v2"
+    "tier": "WAF_v2",
+    "applicationGatewaySslCertificateName": "[format('cert{0}', parameters('appName'))]"
   },
   "resources": [
     {
@@ -598,7 +596,7 @@
             "value": "[parameters('applicationGatewaySslCertificateFilename')]"
           },
           "applicationGatewaySslCertificateName": {
-            "value": "[parameters('applicationGatewaySslCertificateName')]"
+            "value": "[variables('applicationGatewaySslCertificateName')]"
           },
           "applicationGatewaySslCertificatePassword": {
             "value": "[parameters('applicationGatewaySslCertificatePassword')]"
@@ -2050,7 +2048,7 @@
             "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'gw')]"
           },
           "applicationGatewaySslCertificateName": {
-            "value": "[parameters('applicationGatewaySslCertificateName')]"
+            "value": "[variables('applicationGatewaySslCertificateName')]"
           },
           "autoScaleMaxCapacity": {
             "value": "[parameters('autoScaleMaxCapacity')]"

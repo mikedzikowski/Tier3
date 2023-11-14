@@ -55,8 +55,6 @@ param capacity int = 2
 @maxValue(32)
 param autoScaleMaxCapacity int = 10
 
-param applicationGatewaySslCertificateName string
-
 param applicationGatewaySslCertificateFilename string
 
 // APPLICATION SERVICE ENVIRONMENT
@@ -75,7 +73,7 @@ param function string = 'app'
 
 // STARTING INDEX NUMBER
 
-param index int = 5
+param index int = 8
 
 // APP NAME
 
@@ -245,6 +243,8 @@ var sku = 'WAF_v2'
 
 @description('Tier of an application gateway.')
 var tier = 'WAF_v2'
+
+var applicationGatewaySslCertificateName = 'cert${appName}'
 
 resource hubVirtualNetwork 'Microsoft.Network/virtualNetworks@2023-05-01' existing = {
   scope: resourceGroup(hubSubscriptionId, hubResourceGroup)
