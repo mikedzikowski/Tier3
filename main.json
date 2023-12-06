@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "17153949623872287076"
+      "templateHash": "12770428704721669737"
     }
   },
   "parameters": {
@@ -1165,7 +1165,7 @@
             "value": [
               {
                 "name": "gatewayRoute",
-                "addressPrefix": "[parameters('appGwSubnetAddressPrefix')]",
+                "addressPrefix": "[parameters('vNetAddressPrefixes')]",
                 "hasBgpOverride": false,
                 "nextHopIpAddress": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('hubSubscriptionId'), parameters('hubResourceGroup')), 'Microsoft.Network/azureFirewalls', parameters('azureFirewallName')), '2023-05-01').ipConfigurations[0].properties.privateIPAddress]",
                 "nextHopType": "VirtualAppliance"
@@ -1921,7 +1921,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.23.1.45101",
-              "templateHash": "8904116286249424274"
+              "templateHash": "18393025651591237524"
             }
           },
           "parameters": {
@@ -1981,7 +1981,7 @@
             },
             {
               "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
+              "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Web/sites/{0}', parameters('appName'))]",
               "name": "[guid(parameters('principalId'), 'b24988ac-6180-42a0-ab88-20f7382dd24c', resourceGroup().id)]",
               "properties": {

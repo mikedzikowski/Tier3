@@ -189,7 +189,7 @@ var networkSecurityGroupSecurityRules = [
 var hubRoutes = [
   {
     name: 'gatewayRoute'
-    addressPrefix: appGwSubnetAddressPrefix
+    addressPrefix: vNetAddressPrefixes
     hasBgpOverride: false
     nextHopIpAddress: azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
     nextHopType: 'VirtualAppliance'
