@@ -1,9 +1,13 @@
 targetScope = 'subscription'
 
 // REQUIRED PARAMETERS
+@description('Required. Available Ip Address for Application Gateway.')
+param applicationGatewayPrivateIp string
 
 @description('Required. Subscription GUID.')
 param spokeSubscriptionId string
+
+param guidValue string = newGuid()
 
 @description('Required. Subscription GUID.')
 param hubSubscriptionId string
@@ -24,7 +28,7 @@ param spokeResourceGroup string
 param deploymentNameSuffix string = utcNow()
 
 @description('Required. An Array of 1 or more IP Address Prefixes for the Virtual Network.')
-param vNetAddressPrefixes array
+param vNetAddressPrefixes string
 
 @description('Required. The Address Prefix of ASE.')
 param aseSubnetAddressPrefix string
@@ -45,15 +49,10 @@ param dnsZoneName string
 
 // APPLICATION GATEWAY PARAMETERS
 
-@description('Capacity (instance count) of application gateway')
-@minValue(1)
-@maxValue(32)
-param capacity int = 2
-
-@description('Autoscale capacity (instance count) of application gateway')
-@minValue(1)
-@maxValue(32)
-param autoScaleMaxCapacity int = 10
+// @description('Capacity (instance count) of application gateway')
+// @minValue(1)
+// @maxValue(32)
+// param capacity int = 1
 
 param applicationGatewaySslCertificateFilename string
 
@@ -65,27 +64,23 @@ param applicationGatewaySslCertificateFilename string
   'staging'
   'production'
 ])
-param env string = 'development'
+param env string
 
 // FUNCTION or GOAL OF ENVIRONMENT
 
-param function string = 'app'
+param function string
 
 // STARTING INDEX NUMBER
 
-param index int = 8
+param index int
 
 // APP NAME
 
-param appName string = 'tier3'
+param appName string
 
 @description('The certificate password value.')
 @secure()
 param applicationGatewaySslCertificatePassword string
-
-@description('The local administrator password of the management virtual machine.')
-@secure()
-param localAdministratorPassword string
 
 @description('Hub storage account where certificate artifacts are uploaded.')
 param hubStorageAccountName string
@@ -93,22 +88,31 @@ param hubStorageAccountName string
 @description('Hub storage account container where certificate artifacts are uploaded.')
 param hubStorageAccountContainerName string
 
+@description('The address prefix of the gateway subnet.')
+param gatewaySubnetAddressPrefix string
+
+@description('The azure firewall policy name')
+param azureFirewallPolicyName string
+
+var localAdministratorPassword = '${toUpper(uniqueString(subscription().id))}-${guidValue}'
+
 // RESOURCE NAME CONVENTIONS WITH ABBREVIATIONS
-var publicIpAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'pip')
-var gwUdrAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'udr-gw')
-var privateDNSZoneNamingConvention = appServiceEnvironment.outputs.dnssuffix
-var virtualNetworkNamingConvention = replace(names.outputs.resourceName, '[PH]', 'vnet')
-var managedIdentityNamingConvention = replace(names.outputs.resourceName, '[PH]', 'mi')
-var aseSubnetNamingConvention = replace(names.outputs.resourceName, '[PH]', 'ase-snet')
 var appGwSubnetNamingConvention = replace(names.outputs.resourceName, '[PH]', 'appgw-snet')
-var mgmtSubnetNamingConvention = replace(names.outputs.resourceName, '[PH]', 'mgmtvm-snet')
-var aseNamingConvention = replace(names.outputs.resourceName, '[PH]', 'ase')
-var appServicePlanNamingConvention = replace(names.outputs.resourceName, '[PH]', 'app-sp')
 var applicationGatewayNamingConvention = replace(names.outputs.resourceName, '[PH]', 'gw')
-var networkSecurityGroupNamingConvention = replace(names.outputs.resourceName, '[PH]', 'nsg')
 var appNamingConvention = replace(names.outputs.resourceName, '[PH]', 'web')
-var webAppFqdnNamingConvention = replace(names.outputs.resourceName, '[PH]', 'web')
+var appServicePlanNamingConvention = replace(names.outputs.resourceName, '[PH]', 'app-sp')
+var aseNamingConvention = replace(names.outputs.resourceName, '[PH]', 'ase')
+var aseSubnetNamingConvention = replace(names.outputs.resourceName, '[PH]', 'ase-snet')
+var gwUdrAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'udr-gw')
+var hubUdrAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'udr-hub-gw')
+var managedIdentityNamingConvention = replace(names.outputs.resourceName, '[PH]', 'mi')
 var managementVirtualMachineName = replace(names.outputs.virtualMachineName, '[PH]', 'vm')
+var mgmtSubnetNamingConvention = replace(names.outputs.resourceName, '[PH]', 'mgmtvm-snet')
+var networkSecurityGroupNamingConvention = replace(names.outputs.resourceName, '[PH]', 'nsg')
+var privateDNSZoneNamingConvention = appServiceEnvironment.outputs.dnssuffix
+var publicIpAddressNamingConvention = replace(names.outputs.resourceName, '[PH]', 'pip')
+var virtualNetworkNamingConvention = replace(names.outputs.resourceName, '[PH]', 'vnet')
+var webAppFqdnNamingConvention = replace(names.outputs.resourceName, '[PH]', 'web')
 
 // Networking Variables
 var subnets = [
@@ -182,23 +186,38 @@ var networkSecurityGroupSecurityRules = [
   }
 ]
 
-var webApplicationFirewall = {
-  enabled: true
-  firewallMode: 'Detection'
-  ruleSetType: 'OWASP'
-  ruleSetVersion: '3.2'
-  disabledRuleGroups: []
-  exclusions: []
-  requestBodyCheck: true
-  maxRequestBodySizeInKb: 128
-  fileUploadLimitInMb: 100
-}
+var hubRoutes = [
+  {
+    name: 'gatewayRoute'
+    addressPrefix: appGwSubnetAddressPrefix
+    hasBgpOverride: false
+    nextHopIpAddress: azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
+    nextHopType: 'VirtualAppliance'
+  }
+]
 
-// Application Service Environment Variables | https://learn.microsoft.com/en-us/azure/templates/microsoft.network/applicationgateways?pivots=deployment-language-bicep#property-values 
-var http2Enabled = true
+var spokeRoutes = [
+  {
+    name: 'appGwRoute'
+    addressPrefix: appGwSubnetAddressPrefix
+    hasBgpOverride: false
+    nextHopIpAddress: azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
+    nextHopType: 'VirtualAppliance'
+  }
+  {
+    name: 'aseRoute'
+    addressPrefix: aseSubnetAddressPrefix
+    hasBgpOverride: false
+    nextHopIpAddress: azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
+    nextHopType: 'VirtualAppliance'
+  }
+]
 
+// Application Service Environment Variables | https://learn.microsoft.com/en-us/azure/templates/microsoft.network/applicationgateways?pivots=deployment-language-bicep#property-values
+@description('ASE Kind')
 var aseKind = 'ASEV3'
 
+@description('ASE Load Balancer Mode')
 var aseLbMode = 'Web, Publishing'
 
 // Application Gateway Variables | https://learn.microsoft.com/en-us/azure/templates/microsoft.network/applicationgateways?pivots=deployment-language-bicep#property-values 
@@ -209,7 +228,7 @@ var disableBgpRoutePropagation = true
 var port = 443
 
 @description('Private IP Allocation Method')
-var privateIPAllocationMethod = 'Dynamic'
+var privateIPAllocationMethod = 'Static'
 
 @description('Backend http setting protocol')
 var protocol = 'Https'
@@ -218,7 +237,7 @@ var protocol = 'Https'
 var cookieBasedAffinity = 'Disabled'
 
 @description('Hostnames for DNS')
-var hostnames = ['*.${dnsZoneName}']
+var hostnames = [ '*.${dnsZoneName}' ]
 
 @description('Pick Hostname From BackEndAddress Setting')
 var pickHostNameFromBackendAddress = true
@@ -226,6 +245,7 @@ var pickHostNameFromBackendAddress = true
 @description('Integer containing backend http setting request timeout')
 var requestTimeout = 20
 
+@description('Enabled/Disabled. Configures server name indication (SNI) on application gateway.')
 var requireServerNameIndication = true
 
 @description('Public IP Sku')
@@ -237,13 +257,16 @@ var publicIPAllocationMethod = 'Static'
 @description('local admin used on the management virtual machnine.')
 var localAdministratorName = 'xadmin'
 
+@description('Protocol used for routing traffic to backends.')
 var requestRoutingRuleType = 'Basic'
 
-var sku = 'WAF_v2'
+@description('Sku of an application gateway.')
+var sku = 'Standard_v2'
 
 @description('Tier of an application gateway.')
-var tier = 'WAF_v2'
+var tier = 'Standard_v2'
 
+@description('The certificate name.')
 var applicationGatewaySslCertificateName = 'cert${appName}'
 
 resource hubVirtualNetwork 'Microsoft.Network/virtualNetworks@2023-05-01' existing = {
@@ -294,10 +317,27 @@ module keyVault 'modules/keyVault.bicep' = {
     location: location
     skuName: 'standard'
     subnetResourceId: spokeVirtualNetwork.outputs.subnets[1].Id
-    virtualNetworkId:spokeVirtualNetwork.outputs.vNetId
+    virtualNetworkId: spokeVirtualNetwork.outputs.vNetId
   }
   dependsOn: [
     rg
+  ]
+}
+
+module gatewaySubnet 'modules/gatewaySubnet.bicep' = {
+  name: 'gateway-subnet-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(hubSubscriptionId, hubResourceGroup)
+  params: {
+    gatewaySubnetAddressPrefix: gatewaySubnetAddressPrefix
+    gatewaySubnetName:'GatewaySubnet'
+    gatewayUserDefinedRouteTableName: hubUdrAddressNamingConvention
+    hubVnetName: hubVirtualNetwork.name
+  }
+  dependsOn: [
+    rg
+    names
+    networkSecurityGroup
+    hubDefinedRoutes
   ]
 }
 
@@ -308,22 +348,28 @@ module managementVirtualMachine 'modules/managementVirtualMachine.bicep' = {
     applicationGatewaySslCertificateFilename: applicationGatewaySslCertificateFilename
     applicationGatewaySslCertificateName: applicationGatewaySslCertificateName
     applicationGatewaySslCertificatePassword: applicationGatewaySslCertificatePassword
+    firewallPolicyName: azureFirewallPolicyName
+    hubResourceGroup: hubResourceGroup
     hubStorageAccountContainerName: hubStorageAccountContainerName
+    hubStorageAccountName: storageAccount.name
     keyVaultName: keyVault.outputs.keyVaultName
     localAdministratorPassword: localAdministratorPassword
-    localAdministratorUsername:localAdministratorName
+    localAdministratorUsername: localAdministratorName
     location: location
-    hubStorageAccountName: storageAccount.name
     subnetName: mgmtSubnetNamingConvention
     userAssignedIdentityClientId: userAssignedManagedIdentity.outputs.uamiClienId
     userAssignedIdentityId: userAssignedManagedIdentity.outputs.uamiId
     userAssignedIdentityPrincipalId: userAssignedManagedIdentity.outputs.uamiPrincipalId
     virtualMachineName: managementVirtualMachineName
     virtualNetworkName: virtualNetworkNamingConvention
+    vNetAddressPrefixes: vNetAddressPrefixes
   }
   dependsOn: [
     rg
     spokeVirtualNetwork
+    roleAssignmentAzureFirewall
+    roleAssignmentKeyVault
+    roleAssignmentStorageAccount
   ]
 }
 
@@ -331,12 +377,24 @@ module userDefinedRoutes 'modules/userDefinedRoute.bicep' = {
   name: 'udr-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(spokeSubscriptionId, spokeResourceGroup)
   params: {
-    appGwSubnetAddressPrefix: appGwSubnetAddressPrefix
-    aseSubnetAddressPrefix: aseSubnetAddressPrefix
-    azureFirewallIpAddress: azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
+    routes: spokeRoutes
     disableBgpRoutePropagation: disableBgpRoutePropagation
     location: location
     udrName: gwUdrAddressNamingConvention
+  }
+  dependsOn: [
+    rg
+  ]
+}
+
+module hubDefinedRoutes 'modules/userDefinedRoute.bicep' = {
+  name: 'hub-udr-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(hubSubscriptionId, hubResourceGroup)
+  params: {
+    routes: hubRoutes
+    disableBgpRoutePropagation: disableBgpRoutePropagation
+    location: location
+    udrName: hubUdrAddressNamingConvention
   }
   dependsOn: [
     rg
@@ -350,7 +408,7 @@ module userAssignedManagedIdentity 'modules/managedIdentity.bicep' = {
     location: location
     managedIdentityName: managedIdentityNamingConvention
   }
-  dependsOn:[
+  dependsOn: [
     rg
     names
   ]
@@ -436,7 +494,7 @@ module privateDnsZone 'modules/privateDnsZone.bicep' = {
   ]
 }
 
-module web 'modules/webAppOnHostingEnvironment.bicep' = {
+module webApp 'modules/webAppOnHostingEnvironment.bicep' = {
   name: 'web-app-deployment-${deploymentNameSuffix}'
   scope: resourceGroup(spokeSubscriptionId, spokeResourceGroup)
   params: {
@@ -445,6 +503,7 @@ module web 'modules/webAppOnHostingEnvironment.bicep' = {
     hostingPlanName: appServicePlan.outputs.appServicePlanName
     location: location
     managedIdentityName: userAssignedManagedIdentity.outputs.uamiName
+    principalId: userAssignedManagedIdentity.outputs.uamiPrincipalId
   }
   dependsOn: [
     rg
@@ -502,20 +561,29 @@ module roleAssignmentKeyVault 'modules/roleAssignmentKeyVault.bicep' = {
   }
 }
 
+module roleAssignmentAzureFirewall 'modules/roleAssignmentAzureFirewall.bicep' = {
+  name: 'rbac-fw-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(hubSubscriptionId, hubResourceGroup)
+  params: {
+    azureFirewallPolicyName: azureFirewallPolicyName
+    azureFirewallResourceId: azureFirewall.id
+    principalId: userAssignedManagedIdentity.outputs.uamiPrincipalId
+  }
+}
+
 module applicationGateway 'modules/applicationGateway.bicep' = {
   name: 'applicationGateway-${deploymentNameSuffix}'
   scope: resourceGroup(spokeSubscriptionId, spokeResourceGroup)
   params: {
     applicationGatewayName: applicationGatewayNamingConvention
+    applicationGatewayPrivateIp: applicationGatewayPrivateIp
     applicationGatewaySslCertificateName: applicationGatewaySslCertificateName
-    autoScaleMaxCapacity: autoScaleMaxCapacity
-    capacity: capacity
     cookieBasedAffinity: cookieBasedAffinity
     hostnames: hostnames
-    http2Enabled: http2Enabled
     keyVaultName: keyVault.outputs.keyVaultName
     location: location
     managedIdentityName: userAssignedManagedIdentity.outputs.uamiName
+    mgmtSubnetNamingConvention: mgmtSubnetNamingConvention
     pickHostNameFromBackendAddress: pickHostNameFromBackendAddress
     port: port
     privateIPAllocationMethod: privateIPAllocationMethod
@@ -529,11 +597,9 @@ module applicationGateway 'modules/applicationGateway.bicep' = {
     resourceGroup: spokeResourceGroup
     skuName: sku
     subnetName: appGwSubnetNamingConvention
-    subscriptionId: spokeSubscriptionId
     tier: tier
     virtualNetworkName: spokeVirtualNetwork.outputs.name
     webAppFqdn: '${webAppFqdnNamingConvention}.${appServiceEnvironment.outputs.dnssuffix}'
-    webApplicationFirewall: webApplicationFirewall
   }
   dependsOn: [
     managementVirtualMachine
@@ -542,22 +608,5 @@ module applicationGateway 'modules/applicationGateway.bicep' = {
     privateDnsZone
     rg
     virtualNetworkPeeringToHub
-  ]
-}
-
-module dnsZone 'modules/dnsZone.bicep' = {
-  name: 'dnsZone-deployment-${deploymentNameSuffix}'
-  scope: resourceGroup(spokeSubscriptionId, spokeResourceGroup)
-  params: {
-    appName: appNamingConvention
-    dnsZoneName: dnsZoneName
-    location: 'Global'
-    publicIpAddress: applicationGateway.outputs.publicIpAddress
-  }
-  dependsOn: [
-    appServiceEnvironment
-    networkSecurityGroup
-    privateDnsZone
-    spokeVirtualNetwork
   ]
 }

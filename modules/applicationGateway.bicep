@@ -1,13 +1,12 @@
 param applicationGatewayName string
 param applicationGatewaySslCertificateName string
-param autoScaleMaxCapacity int
-param capacity int
+param applicationGatewayPrivateIp string
 param cookieBasedAffinity string
 param hostnames array = []
-param http2Enabled bool
 param keyVaultName string
 param location string
 param managedIdentityName string
+param mgmtSubnetNamingConvention string 
 param pickHostNameFromBackendAddress bool
 param port int
 param privateIPAllocationMethod string
@@ -21,13 +20,11 @@ param requireServerNameIndication bool
 param resourceGroup string
 param skuName string
 param subnetName string
-param subscriptionId string
 param tier string
 param virtualNetworkName string
 param webAppFqdn string
-param webApplicationFirewall object = {}
 
-var frontendIPConfigurationName = '${applicationGatewayName}-publicFrontendIp'
+var frontendIPConfigurationName = applicationGatewayName
 var frontendPortName = 'port_${port}'
 var httpslistenerName = '${applicationGatewayName}-https-listener'
 var backendAddressPoolName = '${applicationGatewayName}-backend-pool'
@@ -60,7 +57,7 @@ resource publicIpAddress 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
   }
 }
 
-resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' = {
+resource applicationGateway 'Microsoft.Network/applicationGateways@2023-05-01' = {
   name: applicationGatewayName
   location: location
   identity: {
@@ -79,7 +76,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' =
         name: gatewayIPConfigurationsName
         properties: {
           subnet: {
-            id: subnet.id
+            id: resourceId(resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, subnet.name)
           }
         }
       }
@@ -92,25 +89,53 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' =
         }
       }
     ]
-    trustedRootCertificates: []
+    trustedRootCertificates: [
+      {
+        name: 'testcer'
+        id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/trustedRootCertificates', applicationGatewayName, 'testcer')
+        properties: {
+          keyVaultSecretId: keyVaultSecretId
+        }
+      }
+    ]
     trustedClientCertificates: []
     sslProfiles: []
     frontendIPConfigurations: [
       {
-        name: frontendIPConfigurationName
+        name: '${frontendIPConfigurationName}-pubIp'
         properties: {
-          privateIPAllocationMethod: privateIPAllocationMethod
+          privateIPAllocationMethod: 'Dynamic'
           publicIPAddress: {
             id: publicIpAddress.id
+          }
+        }
+      }
+      {
+        name: '${frontendIPConfigurationName}-privIp'
+        id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'fename')
+        properties: {
+          privateIPAddress: applicationGatewayPrivateIp
+          privateIPAllocationMethod: privateIPAllocationMethod
+          subnet: {
+            id: resourceId(resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, subnet.name)
+          }
+          privateLinkConfiguration: {
+            id: resourceId('Microsoft.Network/applicationGateways/privateLinkConfigurations', applicationGatewayName, 'pl')
           }
         }
       }
     ]
     frontendPorts: [
       {
-        name: frontendPortName
+        name: 'port_80'
         properties: {
-          port: port
+          port: 80
+        }
+      }
+      {
+        name: 'port_443'
+        properties: {
+          port: 443
         }
       }
     ]
@@ -126,6 +151,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' =
         }
       }
     ]
+    loadDistributionPolicies: []
     backendHttpSettingsCollection: [
       {
         name: backendHttpSettingsName
@@ -138,54 +164,98 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' =
         }
       }
     ]
+    backendSettingsCollection: []
     httpListeners: [
       {
         name: httpslistenerName
         properties: {
           frontendIPConfiguration: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/frontendIPConfigurations/${frontendIPConfigurationName}')
+            id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, '${frontendIPConfigurationName}-privIp')
           }
           frontendPort: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/frontendPorts/${frontendPortName}')
+            id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, frontendPortName)
           }
           protocol: protocol
           sslCertificate: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/sslCertificates/${applicationGatewaySslCertificateName}')
+            id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/sslCertificates', applicationGatewayName, applicationGatewaySslCertificateName)
           }
           hostNames: hostnames
           requireServerNameIndication: requireServerNameIndication
         }
       }
     ]
+    listeners: []
     urlPathMaps: []
     requestRoutingRules: [
       {
         name: requestRoutingRulesName
         properties: {
           ruleType: requestRoutingRuleType
+          priority: 1
           httpListener: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/httpListeners/${httpslistenerName}')
+            id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/httpListeners', applicationGatewayName, httpslistenerName)
           }
           backendAddressPool: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/backendAddressPools/${backendAddressPoolName}')
+            id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/backendAddressPools', applicationGatewayName, backendAddressPoolName)
           }
           backendHttpSettings: {
-            id: concat('/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/providers/Microsoft.Network/applicationGateways/${applicationGatewayName}/backendHttpSettingsCollection/${backendHttpSettingsName}')
+            id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGatewayName, backendHttpSettingsName)
           }
         }
       }
     ]
+    routingRules: []
     probes: []
     rewriteRuleSets: []
     redirectConfigurations: []
-    privateLinkConfigurations: []
-    webApplicationFirewallConfiguration: webApplicationFirewall
-    enableHttp2: http2Enabled
+    privateLinkConfigurations: [
+      {
+        name: 'pl'
+        id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/privateLinkConfigurations', applicationGatewayName, 'pl')
+        properties: {
+          ipConfigurations: [
+            {
+              name: 'privateLinkIpConfig1'
+              id: resourceId(resourceGroup, 'Microsoft.Network/applicationGateways/privateLinkConfigurations/ipConfigurations', applicationGatewayName, 'pl', 'privateLinkIpConfig1')
+              properties: {
+                privateIPAllocationMethod: 'Dynamic'
+                primary: false
+                subnet: {
+                  id: resourceId(resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, mgmtSubnetNamingConvention)
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+    enableHttp2: true
     autoscaleConfiguration: {
-      minCapacity: capacity
-      maxCapacity: autoScaleMaxCapacity
+      minCapacity: 0
+      maxCapacity: 10
     }
   }
 }
 
-output publicIpAddress string = publicIpAddress.properties.ipAddress
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-02-01' = {
+  name: 'pe'
+  location: location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: 'pl'
+        properties: {
+          privateLinkServiceId: applicationGateway.id
+          groupIds: [
+            '${applicationGatewayName}-privIp'
+          ]
+        }
+      }
+    ]
+    manualPrivateLinkServiceConnections: []
+    subnet: {
+      id: resourceId(resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, mgmtSubnetNamingConvention)
+    }
+  }
+}
+

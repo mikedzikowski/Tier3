@@ -1,4 +1,4 @@
-param vNetAddressPrefixes array
+param vNetAddressPrefixes string
 param location string = resourceGroup().location
 param virtualNetworkName string
 param subnets array
@@ -13,7 +13,9 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2020-11-01' = {
   location: location
   properties: {
     addressSpace: {
-      addressPrefixes: vNetAddressPrefixes
+      addressPrefixes: [
+        vNetAddressPrefixes
+      ]
     }
     subnets: [for item in subnets: {
       name: item.name
@@ -21,10 +23,12 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2020-11-01' = {
         addressPrefix: item.addressPrefix
         networkSecurityGroup: (empty(item.networkSecurityGroupName) ? null : json('{"id": "${resourceId('Microsoft.Network/networkSecurityGroups', item.networkSecurityGroupName)}"}'))
         delegations: item.delegations
-        routeTable: {
-          id: userDefinedRoute.id
-        }
-      }
+        privateEndpointNetworkPolicies: 'Disabled'
+            privateLinkServiceNetworkPolicies: contains(item.name, 'mgmt') ? 'Disabled' : 'Enabled'
+            routeTable: {
+              id: userDefinedRoute.id
+            }
+          }
     }]
   }
 }

@@ -6,6 +6,7 @@ param hostingPlanID string = resourceId('Microsoft.Web/serverfarms/', hostingPla
 param hostingEnvironmentProfile string = resourceId('Microsoft.Web/hostingEnvironments/', aseName)
 param httpsEnable bool = true
 param appName string
+param principalId string
 
 resource userAssignedManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30'existing = {
   name: managedIdentityName
@@ -32,13 +33,13 @@ resource webSite 'Microsoft.Web/sites@2020-12-01' = {
   }
 }
 
-resource roleassignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+resource roleassignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: webSite
-  name: guid(userAssignedManagedIdentity.id, 'b24988ac-6180-42a0-ab88-20f7382dd24c', resourceGroup().id)
+  name: guid(principalId,'b24988ac-6180-42a0-ab88-20f7382dd24c', resourceGroup().id)
   properties: {
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-    principalId: userAssignedManagedIdentity.properties.principalId
+    principalId: principalId
   }
 }
 

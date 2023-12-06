@@ -2,6 +2,7 @@ param applicationGatewaySslCertificateFilename string
 param applicationGatewaySslCertificateName string
 @secure()
 param applicationGatewaySslCertificatePassword string
+param firewallPolicyName string
 param hubStorageAccountContainerName string
 param keyVaultName string
 @secure()
@@ -9,12 +10,14 @@ param localAdministratorPassword string
 param localAdministratorUsername string
 param location string
 param hubStorageAccountName string
+param hubResourceGroup string
 param subnetName string
 param userAssignedIdentityClientId string
 param userAssignedIdentityId string
 param userAssignedIdentityPrincipalId string
 param virtualMachineName string
 param virtualNetworkName string
+param vNetAddressPrefixes string
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
   name: hubStorageAccountName
@@ -159,7 +162,7 @@ resource modules 'Microsoft.Compute/virtualMachines/runCommands@2023-03-01' = {
         $StorageAccountUrl = "https://" + $StorageAccountName + ".blob." + $StorageEndpoint + "/"
         $TokenUri = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=$StorageAccountUrl&object_id=$UserAssignedIdentityObjectId"
         $AccessToken = ((Invoke-WebRequest -Headers @{Metadata=$true} -Uri $TokenUri -UseBasicParsing).Content | ConvertFrom-Json).access_token
-        $BlobNames = @('az.accounts.2.13.0.nupkg','az.automation.1.9.0.nupkg','az.keyvault.4.11.0.nupkg','az.resources.6.6.0.nupkg')
+        $BlobNames = @('az.accounts.2.13.0.nupkg','az.automation.1.9.0.nupkg','az.keyvault.4.11.0.nupkg','az.resources.6.6.0.nupkg', 'az.network.6.2.0.nupkg')
         foreach($BlobName in $BlobNames)
         {
           do
@@ -268,6 +271,7 @@ resource sslCertificates 'Microsoft.Compute/virtualMachines/runCommands@2023-03-
       param(
         [string]$ApplicationGatewaySslCertificateFilename,
         [string]$ApplicationGatewaySslCertificateName,
+        [Parameter(Mandatory=$false)]
         [string]$ApplicationGatewaySslCertificatePassword,
         [string]$ContainerName,
         [string]$Environment,
@@ -286,11 +290,85 @@ resource sslCertificates 'Microsoft.Compute/virtualMachines/runCommands@2023-03-
       New-Item -Path $env:windir\temp -Name certificate  -ItemType "directory" -Force
       Invoke-WebRequest -Headers @{"x-ms-version"="2017-11-09"; Authorization ="Bearer $AccessToken"} -Uri "$StorageAccountUrl$ContainerName/$ApplicationGatewaySslCertificateFilename" -OutFile $env:windir\temp\certificate\$ApplicationGatewaySslCertificateFilename
       Set-Location -Path $env:windir\temp\certificate
-      $certificatePassword = ConvertTo-SecureString -String $applicationGatewaySslCertificatePassword -AsPlainText -Force
       Import-Module Az.KeyVault
       Connect-AzAccount -Identity -AccountId $UserAssignedIdentityClientId -Environment $Environment
-      Import-AzKeyVaultCertificate -VaultName $keyVaultName -FilePath .\$ApplicationGatewaySslCertificateFilename -Name $ApplicationGatewaySslCertificateName -Password $certificatePassword
+      if($ApplicationGatewaySslCertificatePassword)
+      {
+        $certificatePassword = ConvertTo-SecureString -String $applicationGatewaySslCertificatePassword -AsPlainText -Force
+        Import-AzKeyVaultCertificate -VaultName $keyVaultName -FilePath .\$ApplicationGatewaySslCertificateFilename -Name $ApplicationGatewaySslCertificateName -Password $certificatePassword
+      }
+      else
+      {
+        Import-AzKeyVaultCertificate -VaultName $keyVaultName -FilePath .\$ApplicationGatewaySslCertificateFilename -Name $ApplicationGatewaySslCertificateName
+      }
       '''
+    }
+  }
+  dependsOn: [
+    modules
+    storageAccount
+  ]
+}
+
+resource spokeFirewallRule 'Microsoft.Compute/virtualMachines/runCommands@2023-03-01' = {
+  name: 'addSpokeFirewallRule'
+  location: location
+  tags: {}
+  parent: virtualMachine
+  properties: {
+    treatFailureAsDeploymentFailure: true
+    asyncExecution: false
+    parameters: [
+      {
+        name: 'VNetAddressPrefixes'
+        value: vNetAddressPrefixes
+      }
+      {
+        name: 'Environment'
+        value: environment().name
+      }
+      {
+        name: 'FirewallPolicyName'
+        value: firewallPolicyName
+      }
+      {
+        name: 'HubResourceGroup'
+        value: hubResourceGroup
+      }
+      {
+        name: 'UserAssignedIdentityClientId'
+        value: userAssignedIdentityClientId
+      }
+    ]
+    protectedParameters:[
+    ]
+    source: {
+      script: '''
+      param(
+        [string]$Environment,
+        [string]$FirewallPolicyName,
+        [string]$HubResourceGroup,
+        [string]$VNetAddressPrefixes,
+        [string]$UserAssignedIdentityClientId
+      )
+    $ErrorActionPreference = 'Stop'
+    $WarningPreference = 'SilentlyContinue'
+    Import-Module Az.Network
+    Connect-AzAccount -Identity -AccountId $UserAssignedIdentityClientId -Environment $Environment
+    $firewallPolicy = Get-AzFirewallPolicy -Name $firewallPolicyName -ResourceGroupName $hubResourceGroup
+    # Get the existing rule collection
+    $networkRuleCollectionGroup = Get-AzFirewallPolicyRuleCollectionGroup -Name "DefaultNetworkRuleCollectionGroup" -ResourceGroupName $hubResourceGroup -AzureFirewallPolicyName $firewallPolicy.Name
+    $existingrulecollection = $networkRuleCollectionGroup.Properties.RuleCollection | Where-Object {$_.Name -eq "AllowTrafficBetweenSpokes"}
+    # Get the current source addresses defined in the rule
+    $currentSourceAddresses = $existingrulecollection.Rules[0].SourceAddresses
+    # Add a new source address
+    $spokeSourceAddress = $vNetAddressPrefixes
+    $currentSourceAddresses += $spokeSourceAddress
+    # Update the rule with the new source addresses
+    $existingrulecollection.Rules[0].SourceAddresses = $currentSourceAddresses
+    # Update the firewall policy
+    Set-AzFirewallPolicyRuleCollectionGroup -Name "DefaultNetworkRuleCollectionGroup" -FirewallPolicyObject $firewallPolicy -Priority 200 -RuleCollection $networkRuleCollectionGroup.Properties.rulecollection
+    '''
     }
   }
   dependsOn: [

@@ -147,6 +147,97 @@
                                     }
                                 }
                             ]
+                        },
+                        {
+                            "name": "infoBoxLocation",
+                            "type": "Microsoft.Common.InfoBox",
+                            "options": {
+                                "text": "Values selected will be used to name resources. Example: ase-hr-webapp-p-01",
+                                "style": "Info"
+                            }
+                        },
+                        {
+                            "name": "appName",
+                            "type": "Microsoft.Common.TextBox",
+                            "label": "Name",
+                            "defaultValue": "",
+                            "toolTip": "Use only allowed characters",
+                            "placeholder": "web",
+                            "multiLine": false,
+                            "constraints": {
+                                "required": true,
+                                "validations": []
+                            },
+                            "visible": true
+                        },
+                        {
+                            "name": "appEnvironment",
+                            "type": "Microsoft.Common.DropDown",
+                            "label": "Environment",
+                            "placeholder": "",
+                            "defaultValue": "",
+                            "toolTip": "",
+                            "multiselect": false,
+                            "selectAll": false,
+                            "filter": true,
+                            "filterPlaceholder": "Filter items ...",
+                            "multiLine": false,
+                            "defaultDescription": "A value for selection",
+                            "constraints": {
+                                "allowedValues": [
+                                    {
+                                        "label": "Production",
+                                        "description": "production environment",
+                                        "value": "production"
+                                    },
+                                    {
+                                        "label": "Development",
+                                        "description": "development environment",
+                                        "value": "development"
+                                    },
+                                    {
+                                        "label": "Staging",
+                                        "description": "staging environment",
+                                        "value": "staging"
+                                    },
+                                    {
+                                        "label": "Test",
+                                        "description": "test environment",
+                                        "value": "test"
+                                    }
+                                ],
+                                "required": true
+                            },
+                            "visible": true
+                        },
+                        {
+                            "name": "appFunction",
+                            "type": "Microsoft.Common.TextBox",
+                            "label": "Function",
+                            "defaultValue": "",
+                            "toolTip": "Use only allowed characters",
+                            "placeholder": "app",
+                            "multiLine": false,
+                            "constraints": {
+                                "required": true,
+                                "validations": []
+                            },
+                            "visible": true
+                        },
+                        {
+                            "name": "appIndex",
+                            "type": "Microsoft.Common.Slider",
+                            "min": 1,
+                            "max": 20,
+                            "label": "Index",
+                            "subLabel": "index",
+                            "defaultValue": 1,
+                            "showStepMarkers": false,
+                            "toolTip": "Pick the index of app 1-20",
+                            "constraints": {
+                                "required": true
+                            },
+                            "visible": true
                         }
                     ]
                 },
@@ -169,12 +260,33 @@
                                     }
                                 },
                                 {
+                                    "name": "firewallPolicy",
+                                    "type": "Microsoft.Solutions.ResourceSelector",
+                                    "label": "Select MLZ Hub Azure Spoke Firewall Policy. This will be updated and the spoke virtualnetwork will be added to allow spoke traffic from the hub",
+                                    "resourceType": "Microsoft.Network/firewallPolicies",
+                                    "scope": {
+                                        "subscriptionId": "[replace(steps('basics').hubSection.hubSubscriptionId, '/subscriptions/', '')]"
+                                    }
+                                },
+                                {
                                     "name": "hubVirtualNetwork",
                                     "type": "Microsoft.Solutions.ResourceSelector",
                                     "label": "Select MLZ Hub Virtual Network",
                                     "resourceType": "Microsoft.Network/virtualNetworks",
                                     "scope": {
                                         "subscriptionId": "[replace(steps('basics').hubSection.hubSubscriptionId, '/subscriptions/', '')]"
+                                    }
+                                },
+                                {
+                                    "name": "gatewaySubnetAddressPrefix",
+                                    "label": "Gateway Subnet Address Prefix",
+                                    "type": "Microsoft.Common.TextBox",
+                                    "defaultValue": "10.0.100.160/27",
+                                    "toolTip": "Specify a CIDR range for the Application Gateway subnet within the Spoke Virtual Network range [10,24].",
+                                    "constraints": {
+                                        "required": true,
+                                        "validations": [
+                                        ]
                                     }
                                 }
                             ]
@@ -317,35 +429,15 @@
                                             }
                                         ]
                                     }
-                                }
-                            ]
-                        },
-                        {
-                            "name": "managementVm",
-                            "label": "Management Virtual Machine",
-                            "type": "Microsoft.Common.Section",
-                            "elements": [
+                                },
                                 {
-                                    "name": "vmCredentials",
-                                    "type": "Microsoft.Compute.CredentialsCombo",
-                                    "label": {
-                                        "password": "Password",
-                                        "confirmPassword": "Confirm password"
-                                    },
-                                    "toolTip": {
-                                        "password": ""
-                                    },
+                                    "name": "privateIpAddress",
+                                    "type": "Microsoft.Common.TextBox",
+                                    "label": "Private Ip Address of Application Gateway",
+                                    "defaultValue": "",
                                     "constraints": {
-                                        "required": true,
-                                        "customPasswordRegex": "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])[\\w~@#$%^&*+=|{}:;!.?\\()\\[\\]-]{8,}$",
-                                        "customValidationMessage": "The password must contain at least 8 characters, with at least 1 uppercase, 1 lowercase and 1 number."
-                                    },
-                                    "options": {
-                                        "hideConfirmation": false
-                                    },
-                                    "osPlatform": "Windows",
-                                    "visible": true,
-                                    "resourceTypeMetadata": []
+                                        "required": true
+                                    }
                                 }
                             ]
                         },
@@ -411,9 +503,9 @@
                                     },
                                     "toolTip": "",
                                     "constraints": {
-                                        "required": true,
+                                        "required": false,
                                         "regex": "^[a-zA-Z0-9]{8,}$",
-                                        "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
+                                        "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters. Can be blank."
                                     },
                                     "options": {
                                         "hideConfirmation": false
@@ -428,23 +520,29 @@
         },
         "outputs": {
             "parameters": {
-				"appGwSubnetAddressPrefix":"[steps('spoke').spokeVirtualNetwork.appGwSubnetAddressCidrRange]",
-				"applicationGatewaySslCertificatePassword":"[steps('certificates').certificate.password]",
-				"aseSubnetAddressPrefix":"[steps('spoke').spokeVirtualNetwork.aseSubnetAddressCidrRange]",
-				"azureFirewallName": "[steps('hub').hubResources.firewall.name]",
-				"dnsZoneName":"[steps('spoke').dns.dnsZone]",
-				"hubResourceGroup":"[first(skip(split(steps('hub').hubResources.firewall.id, '/'), 4))]",
-				"hubStorageAccountContainerName":"[first(skip(split(steps('certificates').storageBlobSelection.sasUri, '/'), 3))]",
-				"hubStorageAccountName":"[first(skip(split(steps('certificates').storageBlobSelection.sasUri, '.'), 1))]",
-				"hubVirtualNetworkName":"[steps('hub').hubResources.hubVirtualNetwork.name]",
-				"localAdministratorPassword":"[steps('spoke').managementVm.vmCredentials.password]",
-				"managementVirtualMachineSubnetAddressPrefix":"[steps('spoke').spokeVirtualNetwork.mgmtSubnetAddressCidrRange]",
-				"spokeResourceGroup": "[steps('spoke').spokeResourceGroupName.vmCredentials]",
-				"vNetAddressPrefixes":"[steps('spoke').spokeVirtualNetwork.spokeVirtualNetworkAddressCidrRange]",
+                "applicationGatewayPrivateIp": "[steps('spoke').spokeVirtualNetwork.privateIpAddress]",
+                "appGwSubnetAddressPrefix": "[steps('spoke').spokeVirtualNetwork.appGwSubnetAddressCidrRange]",
+                "applicationGatewaySslCertificatePassword": "[steps('certificates').certificate.password]",
+                "aseSubnetAddressPrefix": "[steps('spoke').spokeVirtualNetwork.aseSubnetAddressCidrRange]",
+                "azureFirewallName": "[steps('hub').hubResources.firewall.name]",
+                "azureFirewallPolicyName": "[steps('hub').hubResources.firewallPolicy.name]",
+                "dnsZoneName": "[steps('spoke').dns.dnsZone]",
+                "gatewaySubnetAddressPrefix": "[steps('hub').hubResources.gatewaySubnetAddressPrefix]",
+                "hubResourceGroup": "[first(skip(split(steps('hub').hubResources.firewall.id, '/'), 4))]",
+                "hubStorageAccountContainerName": "[first(skip(split(steps('certificates').storageBlobSelection.sasUri, '/'), 3))]",
+                "hubStorageAccountName": "[replace(first(skip(split(steps('certificates').storageBlobSelection.sasUri, '.'), 0)), 'https://', '')]",
+                "hubVirtualNetworkName": "[steps('hub').hubResources.hubVirtualNetwork.name]",
+                "managementVirtualMachineSubnetAddressPrefix": "[steps('spoke').spokeVirtualNetwork.mgmtSubnetAddressCidrRange]",
+                "spokeResourceGroup": "[steps('spoke').spokeResourceGroupName.vmCredentials]",
+                "vNetAddressPrefixes": "[steps('spoke').spokeVirtualNetwork.spokeVirtualNetworkAddressCidrRange]",
                 "applicationGatewaySslCertificateFilename": "[steps('certificates').storageBlobSelection.blobName]",
                 "hubSubscriptionId": "[replace(steps('basics').hubSection.hubSubscriptionId, '/subscriptions/', '')]",
-                "location":"[steps('basics').locationSection.location]",
-                "spokeSubscriptionId": "[replace(steps('basics').spokeSection.spokeSubscriptionId, '/subscriptions/', '')]"
+                "location": "[steps('basics').locationSection.location]",
+                "spokeSubscriptionId": "[replace(steps('basics').spokeSection.spokeSubscriptionId, '/subscriptions/', '')]",
+                "appName": "[steps('basics').appName]",
+                "env": "[steps('basics').appEnvironment]",
+                "index": "[steps('basics').appIndex]",
+                "function": "[steps('basics').appFunction]"
             },
             "kind": "Subscription",
             "subscriptionId": "[steps('basics').spokeSection.spokeSubscriptionId]",
