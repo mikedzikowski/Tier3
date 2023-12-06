@@ -29,7 +29,7 @@ Use the PowerSHell example below to create a template spec.
 
 ### Example ###
 
-*[Create and deploy template spec](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/quickstart-create-template-specs?tabs=azure-powershell)
+[Create and deploy template spec](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/quickstart-create-template-specs?tabs=azure-powershell)
 
 ```powershell
 [CmdletBinding(SupportsShouldProcess)]
