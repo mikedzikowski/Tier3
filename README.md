@@ -1,120 +1,60 @@
-# Mission Owner Environment - Tier 3 Environment #
+# Mission Owner Environment - Application Gateway Spoke Environment #
 
-# Application Gateway Example #
+## Application Gateway Example ##
 
-This example deploys a Tier 3 environment to support an Application Service Environment (ILB), App Service, and Application Gateway Integration.
+This example deploys a Tier 3 environment to support an Application Service Environment, App Service, and Application Gateway Integration.
 
 Read on to understand what this example does, and when you're ready, collect all of the pre-requisites, then deploy the example.
 
-# What this example does #
+## Pre-requisites ##
 
-The docs on Integrate your ILB App Service Environment with the Azure Application Gateway: https://docs.microsoft.com/en-us/azure/app-service/environment/integrate-with-application-gateway. This sample shows how to deploy the sample environment using Azure Bicep.
+- An exisiting Mission Landing Zone (MLZ) hub and spoke deployment
+- A certificate to be used with the web app as a PFX uploaded to the storage account in the MLZ hub
 
-![image alt text](/images/ase.png)
+## Upload the following scripts and files to your storage account container ###
 
-Example result
+*[Az.Accounts 2.13.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Accounts/2.13.0)
+*[Az.Automation 1.9.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Automation/1.9.0)
+*[Az.Keyvault 4.11.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Resources/4.11.0)
+*[Az.Network 6.2.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Resources/6.2.0)
+*[Az.Resources 6.6.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Resources/6.6.0)
 
-![image alt text](/images/result.png)
+## Creating Template Spec ##
 
-The subscription and resource group can be changed by providing the resource group name (Param: targetResourceGroup) and ensuring that the Azure context is set the proper subscription.
+Use the PowerSHell example below to create a template spec.
 
-# Pre-requisites #
+### Example ###
 
-- An exisiting Mission Landing Zone deployment.
-- A public DNS name that's used later to point to your application gateway.
-- To use TLS/SSL encryption to the application gateway, a valid public certificate that's used to bind to your application gateway is required.
-- Access policy will be created to import certificate into KeyVault.
-- Azure Firewall Rule to allow traffic to pass to the Application Service Environment subnet over 443.
+*[Create and deploy template spec](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/quickstart-create-template-specs?tabs=azure-powershell)
 
-# How to build the bicep code #
+```powershell
+[CmdletBinding(SupportsShouldProcess)]
+param (
+[Parameter(Mandatory)]
+[string]$TemplateSpecName,
+[Parameter(Mandatory)]
+[string]$Location,
+[Parameter(Mandatory)]
+[string]$ResourceGroupName
+)
 
-```plaintext
-bicep build .\main.bicep
+New-AzTemplateSpec `
+  -Name $TemplateSpecName `
+  -ResourceGroupName $ResourceGroupName `
+  -Version '1.0' `
+  -Location $Location `
+  -DisplayName "Application Gateway Spoke Environment" `
+  -TemplateFile '.\main.json' `
+  -UIFormDefinitionFile '.\uiDefinition.json' `
+  -Force
 ```
 
-# Depoyment options using bicep #
+## Example depoyment using Custom TemplateSpec User Interface ##
 
-```plaintext
+![Alt text](images/mlzspoke.gif)
 
-Update main.bicep with required parameters. 
+## References ##
 
-The solution can be deployed using only main.bicep or by building the KeyVault using keyVault.bicep, then deploying main.bicep.
-
-1. Deploy KeyVault using keyVault.bicep 
-
-az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\keyVault.bicep
-
-  - After the initial deployment of the key vault, import the required certificates to your keyvault. This step may require an access policy to be created. 
-  - Once the certificate is imported, in main.bicep: 
-  - Set buildKeyVault to false 
-  - Set buildAppGateway value to true
-  - Run:
-  
-  az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
-
--- 
-
-2. Deploy Application Gateway and ASE Mission Owner Environment using a single main.bicep file
-
-az deployment sub create --name Tier3Deployment --location usgovvirginia  --template-file .\main.bicep
-
-/*
-  If KeyVault is not deployed on first build, set buildKeyVault to true. 
-
-  - After the initial build, import the required certificates to your keyvault. 
-  - Once the certificate is imported
-  - Set buildAppGateway value to true 
-  - Set buildKeyVault to false and run:
-  
-  az deployment sub create --name KeyVault --location usgovvirginia  --template-file .\main.bicep
-*/
-```
-
-# GitHub Integration #
-
-```Yaml
-name: 'AzureBicepDeploy'
-
-on:
-  push:
-    branches:
-    - main
-  pull_request:
-
-jobs:
-
-  AzureBicepDeploy:
-    name: 'AzureBicepDeploy'
-    runs-on: windows-latest
-    env:
-      ResourceGroupName: rg-app-gateway-example-01
-      ResourceGroupLocation: "usgovvirginia"
-    environment: production
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - name: Azure Bicep Build
-      run: |
-        az bicep build --file BicepFiles/main.bicep
-    - name: Az CLI Create Resource Group
-      uses: Azure/CLI@v1
-      with:
-        inlineScript: |
-          #!/bin/bash
-          az group create --name ${{ env.ResourceGroupName }} --location ${{ env.ResourceGroupLocation }}
-    - name: Deploy Azure Bicep
-      uses: Azure/arm-deploy@v1
-      with:
-        resourceGroupName: ${{ env.ResourceGroupName }}
-        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        template: ./Bicep/main.json
-```
-
-# References #
-
-- [Integrate your ILB App Service Environment with the Azure Application Gateway](https://docs.microsoft.com/en-us/azure/app-service/environment/integrate-with-application-gateway).
-
-- [Tutorial: Import a certificate in Azure Key Vault](https://docs.microsoft.com/en-us/azure/key-vault/certificates/tutorial-import-certificate).
+*[Upload, download, and list blobs with the Azure portal](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal)
+*[Create certificates to allow the backend with Azure Application Gateway](https://learn.microsoft.com/en-us/azure/application-gateway/certificates-for-backend-authentication)
+*[Generate an Azure Application Gateway self-signed certificate with a custom root CA](https://learn.microsoft.com/en-us/azure/application-gateway/self-signed-certificates)

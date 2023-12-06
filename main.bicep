@@ -1,63 +1,38 @@
 targetScope = 'subscription'
 
 // REQUIRED PARAMETERS
-@description('Required. Available Ip Address for Application Gateway.')
-param applicationGatewayPrivateIp string
-
-@description('Required. Subscription GUID.')
-param spokeSubscriptionId string
-
-param guidValue string = newGuid()
-
-@description('Required. Subscription GUID.')
-param hubSubscriptionId string
-
-@description('Required. ResourceGroup location.')
-param location string = deployment().location
-
-@description('Required. Azure Firewall Name.')
-param azureFirewallName string
-
-@description('Required. ResourceGroup Name.')
-param hubResourceGroup string
-
-@description('Required. ResourceGroup Name.')
-param spokeResourceGroup string
-
-@description('Required. Creating UTC for deployments.')
-param deploymentNameSuffix string = utcNow()
-
-@description('Required. An Array of 1 or more IP Address Prefixes for the Virtual Network.')
-param vNetAddressPrefixes string
-
-@description('Required. The Address Prefix of ASE.')
-param aseSubnetAddressPrefix string
-
-@description('Required. The Address Prefix of AppGw.')
+@description('The address prefix for the application gateway subnet.')
 param appGwSubnetAddressPrefix string
 
-@description('Required. The Address Prefix of AppGw.')
-param managementVirtualMachineSubnetAddressPrefix string
+@description('The private IP address for the application gateway.')
+param applicationGatewayPrivateIp string
 
-// If peering update this value
-@description('Required. Exisisting Virtual Network Name for Peering.')
-param hubVirtualNetworkName string
-
-// DNS Zone Parameters
-@description('Optional:Global DNS Zone Name')
-param dnsZoneName string
-
-// APPLICATION GATEWAY PARAMETERS
-
-// @description('Capacity (instance count) of application gateway')
-// @minValue(1)
-// @maxValue(32)
-// param capacity int = 1
-
+@description('The filename of the SSL certificate for the application gateway.')
 param applicationGatewaySslCertificateFilename string
 
-// APPLICATION SERVICE ENVIRONMENT
+@description('The password for the SSL certificate for the application gateway.')
+@secure()
+param applicationGatewaySslCertificatePassword string
 
+@description('The name of the application.')
+param appName string
+
+@description('The address prefix for the ASE subnet.')
+param aseSubnetAddressPrefix string
+
+@description('The name of the Azure Firewall.')
+param azureFirewallName string
+
+@description('The name of the Azure Firewall policy.')
+param azureFirewallPolicyName string
+
+@description('The suffix to be added to the deployment name.')
+param deploymentNameSuffix string = utcNow()
+
+@description('The name of the DNS zone.')
+param dnsZoneName string
+
+@description('The environment.')
 @allowed([
   'development'
   'test'
@@ -66,33 +41,47 @@ param applicationGatewaySslCertificateFilename string
 ])
 param env string
 
-// FUNCTION or GOAL OF ENVIRONMENT
-
+@description('The function.')
 param function string
 
-// STARTING INDEX NUMBER
-
-param index int
-
-// APP NAME
-
-param appName string
-
-@description('The certificate password value.')
-@secure()
-param applicationGatewaySslCertificatePassword string
-
-@description('Hub storage account where certificate artifacts are uploaded.')
-param hubStorageAccountName string
-
-@description('Hub storage account container where certificate artifacts are uploaded.')
-param hubStorageAccountContainerName string
-
-@description('The address prefix of the gateway subnet.')
+@description('The address prefix for the gateway subnet.')
 param gatewaySubnetAddressPrefix string
 
-@description('The azure firewall policy name')
-param azureFirewallPolicyName string
+@description('The GUID value.')
+param guidValue string = newGuid()
+
+@description('The resource group for the hub.')
+param hubResourceGroup string
+
+@description('The container name for the hub storage account.')
+param hubStorageAccountContainerName string
+
+@description('The name of the hub storage account.')
+param hubStorageAccountName string
+
+@description('The subscription ID for the hub.')
+param hubSubscriptionId string
+
+@description('The name of the hub virtual network.')
+param hubVirtualNetworkName string
+
+@description('The index.')
+param index int
+
+@description('The location.')
+param location string = deployment().location
+
+@description('The address prefix for the management virtual machine subnet.')
+param managementVirtualMachineSubnetAddressPrefix string
+
+@description('The resource group for the spoke.')
+param spokeResourceGroup string
+
+@description('The subscription ID for the spoke.')
+param spokeSubscriptionId string
+
+@description('The address prefixes for the virtual network.')
+param vNetAddressPrefixes string
 
 var localAdministratorPassword = '${toUpper(uniqueString(subscription().id))}-${guidValue}'
 

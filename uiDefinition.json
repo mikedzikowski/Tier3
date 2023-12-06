@@ -262,7 +262,8 @@
                                 {
                                     "name": "firewallPolicy",
                                     "type": "Microsoft.Solutions.ResourceSelector",
-                                    "label": "Select MLZ Hub Azure Spoke Firewall Policy. This will be updated and the spoke virtualnetwork will be added to allow spoke traffic from the hub",
+                                    "toolTip": "Select MLZ Hub Azure Spoke Firewall Policy. This will be updated and the spoke virtualnetwork will be added to allow spoke traffic from the hub",
+                                    "label": "Select MLZ Hub Azure Firewall Policy",
                                     "resourceType": "Microsoft.Network/firewallPolicies",
                                     "scope": {
                                         "subscriptionId": "[replace(steps('basics').hubSection.hubSubscriptionId, '/subscriptions/', '')]"

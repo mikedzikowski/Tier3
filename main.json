@@ -5,102 +5,70 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "12770428704721669737"
+      "templateHash": "6883572459426506331"
     }
   },
   "parameters": {
+    "appGwSubnetAddressPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "The address prefix for the application gateway subnet."
+      }
+    },
     "applicationGatewayPrivateIp": {
       "type": "string",
       "metadata": {
-        "description": "Required. Available Ip Address for Application Gateway."
+        "description": "The private IP address for the application gateway."
       }
     },
-    "spokeSubscriptionId": {
+    "applicationGatewaySslCertificateFilename": {
       "type": "string",
       "metadata": {
-        "description": "Required. Subscription GUID."
+        "description": "The filename of the SSL certificate for the application gateway."
       }
     },
-    "guidValue": {
-      "type": "string",
-      "defaultValue": "[newGuid()]"
-    },
-    "hubSubscriptionId": {
-      "type": "string",
+    "applicationGatewaySslCertificatePassword": {
+      "type": "securestring",
       "metadata": {
-        "description": "Required. Subscription GUID."
+        "description": "The password for the SSL certificate for the application gateway."
       }
     },
-    "location": {
+    "appName": {
       "type": "string",
-      "defaultValue": "[deployment().location]",
       "metadata": {
-        "description": "Required. ResourceGroup location."
+        "description": "The name of the application."
+      }
+    },
+    "aseSubnetAddressPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "The address prefix for the ASE subnet."
       }
     },
     "azureFirewallName": {
       "type": "string",
       "metadata": {
-        "description": "Required. Azure Firewall Name."
+        "description": "The name of the Azure Firewall."
       }
     },
-    "hubResourceGroup": {
+    "azureFirewallPolicyName": {
       "type": "string",
       "metadata": {
-        "description": "Required. ResourceGroup Name."
-      }
-    },
-    "spokeResourceGroup": {
-      "type": "string",
-      "metadata": {
-        "description": "Required. ResourceGroup Name."
+        "description": "The name of the Azure Firewall policy."
       }
     },
     "deploymentNameSuffix": {
       "type": "string",
       "defaultValue": "[utcNow()]",
       "metadata": {
-        "description": "Required. Creating UTC for deployments."
-      }
-    },
-    "vNetAddressPrefixes": {
-      "type": "string",
-      "metadata": {
-        "description": "Required. An Array of 1 or more IP Address Prefixes for the Virtual Network."
-      }
-    },
-    "aseSubnetAddressPrefix": {
-      "type": "string",
-      "metadata": {
-        "description": "Required. The Address Prefix of ASE."
-      }
-    },
-    "appGwSubnetAddressPrefix": {
-      "type": "string",
-      "metadata": {
-        "description": "Required. The Address Prefix of AppGw."
-      }
-    },
-    "managementVirtualMachineSubnetAddressPrefix": {
-      "type": "string",
-      "metadata": {
-        "description": "Required. The Address Prefix of AppGw."
-      }
-    },
-    "hubVirtualNetworkName": {
-      "type": "string",
-      "metadata": {
-        "description": "Required. Exisisting Virtual Network Name for Peering."
+        "description": "The suffix to be added to the deployment name."
       }
     },
     "dnsZoneName": {
       "type": "string",
       "metadata": {
-        "description": "Optional:Global DNS Zone Name"
+        "description": "The name of the DNS zone."
       }
-    },
-    "applicationGatewaySslCertificateFilename": {
-      "type": "string"
     },
     "env": {
       "type": "string",
@@ -109,45 +77,95 @@
         "test",
         "staging",
         "production"
-      ]
+      ],
+      "metadata": {
+        "description": "The environment."
+      }
     },
     "function": {
-      "type": "string"
-    },
-    "index": {
-      "type": "int"
-    },
-    "appName": {
-      "type": "string"
-    },
-    "applicationGatewaySslCertificatePassword": {
-      "type": "securestring",
-      "metadata": {
-        "description": "The certificate password value."
-      }
-    },
-    "hubStorageAccountName": {
       "type": "string",
       "metadata": {
-        "description": "Hub storage account where certificate artifacts are uploaded."
-      }
-    },
-    "hubStorageAccountContainerName": {
-      "type": "string",
-      "metadata": {
-        "description": "Hub storage account container where certificate artifacts are uploaded."
+        "description": "The function."
       }
     },
     "gatewaySubnetAddressPrefix": {
       "type": "string",
       "metadata": {
-        "description": "The address prefix of the gateway subnet."
+        "description": "The address prefix for the gateway subnet."
       }
     },
-    "azureFirewallPolicyName": {
+    "guidValue": {
+      "type": "string",
+      "defaultValue": "[newGuid()]",
+      "metadata": {
+        "description": "The GUID value."
+      }
+    },
+    "hubResourceGroup": {
       "type": "string",
       "metadata": {
-        "description": "The azure firewall policy name"
+        "description": "The resource group for the hub."
+      }
+    },
+    "hubStorageAccountContainerName": {
+      "type": "string",
+      "metadata": {
+        "description": "The container name for the hub storage account."
+      }
+    },
+    "hubStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the hub storage account."
+      }
+    },
+    "hubSubscriptionId": {
+      "type": "string",
+      "metadata": {
+        "description": "The subscription ID for the hub."
+      }
+    },
+    "hubVirtualNetworkName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the hub virtual network."
+      }
+    },
+    "index": {
+      "type": "int",
+      "metadata": {
+        "description": "The index."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[deployment().location]",
+      "metadata": {
+        "description": "The location."
+      }
+    },
+    "managementVirtualMachineSubnetAddressPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "The address prefix for the management virtual machine subnet."
+      }
+    },
+    "spokeResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource group for the spoke."
+      }
+    },
+    "spokeSubscriptionId": {
+      "type": "string",
+      "metadata": {
+        "description": "The subscription ID for the spoke."
+      }
+    },
+    "vNetAddressPrefixes": {
+      "type": "string",
+      "metadata": {
+        "description": "The address prefixes for the virtual network."
       }
     }
   },
