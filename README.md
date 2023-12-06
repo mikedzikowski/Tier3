@@ -14,9 +14,13 @@ Read on to understand what this example does, and when you're ready, collect all
 ## Upload the following scripts and files to your storage account container ###
 
 *[Az.Accounts 2.13.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Accounts/2.13.0)
+
 *[Az.Automation 1.9.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Automation/1.9.0)
+
 *[Az.Keyvault 4.11.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Resources/4.11.0)
+
 *[Az.Network 6.2.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Resources/6.2.0)
+
 *[Az.Resources 6.6.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Resources/6.6.0)
 
 ## Creating Template Spec ##
@@ -56,5 +60,7 @@ New-AzTemplateSpec `
 ## References ##
 
 *[Upload, download, and list blobs with the Azure portal](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal)
+
 *[Create certificates to allow the backend with Azure Application Gateway](https://learn.microsoft.com/en-us/azure/application-gateway/certificates-for-backend-authentication)
+
 *[Generate an Azure Application Gateway self-signed certificate with a custom root CA](https://learn.microsoft.com/en-us/azure/application-gateway/self-signed-certificates)
