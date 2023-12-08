@@ -9,6 +9,7 @@ Read on to understand what this example does, and when you're ready, collect all
 ## Pre-requisites ##
 
 - An exisiting Mission Landing Zone (MLZ) hub and spoke deployment
+- You must have Owner RBAC permissions to the subscription(s) you deploy the Tier 3 Spoke with Mission Landing Zone into.
 - A certificate to be used with the web app as a PFX uploaded to the storage account in the MLZ hub
   - When testing in a dev environment a self-signed certificate generated from a Key Vault with CN=*.appserviceenvironment.us will be sufficient
 
