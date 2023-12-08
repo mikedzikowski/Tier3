@@ -491,6 +491,27 @@
                             }
                         },
                         {
+                            "name": "passwordOnCertificate",
+                            "type": "Microsoft.Common.OptionsGroup",
+                            "label": "Is certificate password protected?",
+                            "defaultValue": "false",
+                            "toolTip": "",
+                            "constraints": {
+                                "allowedValues": [
+                                    {
+                                        "label": "True",
+                                        "value": true
+                                    },
+                                    {
+                                        "label": "False",
+                                        "value": false
+                                    }
+                                ],
+                                "required": true
+                            },
+                            "visible": true
+                        },
+                        {
                             "name": "certificate",
                             "label": "Certificate Password",
                             "type": "Microsoft.Common.Section",
@@ -504,14 +525,12 @@
                                     },
                                     "toolTip": "",
                                     "constraints": {
-                                        "required": false,
-                                        "regex": "^[a-zA-Z0-9]{8,}$",
-                                        "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters. Can be blank."
+                                        "required": false
                                     },
                                     "options": {
                                         "hideConfirmation": false
                                     },
-                                    "visible": true
+                                    "visible": "[equals(steps('certificates').passwordOnCertificate, true)]"
                                 }
                             ]
                         }

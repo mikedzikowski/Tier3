@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "6883572459426506331"
+      "templateHash": "2605467286959592768"
     }
   },
   "parameters": {
@@ -29,6 +29,7 @@
     },
     "applicationGatewaySslCertificatePassword": {
       "type": "securestring",
+      "defaultValue": "",
       "metadata": {
         "description": "The password for the SSL certificate for the application gateway."
       }

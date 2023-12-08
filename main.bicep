@@ -12,7 +12,7 @@ param applicationGatewaySslCertificateFilename string
 
 @description('The password for the SSL certificate for the application gateway.')
 @secure()
-param applicationGatewaySslCertificatePassword string
+param applicationGatewaySslCertificatePassword string = ''
 
 @description('The name of the application.')
 param appName string
