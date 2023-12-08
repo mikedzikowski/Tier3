@@ -451,7 +451,7 @@
                                     "name": "dnsZone",
                                     "type": "Microsoft.Common.TextBox",
                                     "label": "Domain Name (Global)",
-                                    "defaultValue": "",
+                                    "defaultValue": "*.appserviceenvironment.us",
                                     "constraints": {
                                         "required": true
                                     }
