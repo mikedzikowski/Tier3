@@ -265,6 +265,14 @@
                             "label": "Mission Landing Zone Hub",
                             "elements": [
                                 {
+                                    "name": "gatewayInfoBoxLocation",
+                                    "type": "Microsoft.Common.InfoBox",
+                                    "options": {
+                                        "text": "Please update the gateway Subnet Address based on your networking requirements.",
+                                        "style": "Info"
+                                    }
+                                },
+                                {
                                     "name": "firewall",
                                     "type": "Microsoft.Solutions.ResourceSelector",
                                     "label": "Select MLZ Hub Azure Firewall",
@@ -316,6 +324,14 @@
                             "label": "Spoke Virtual Network",
                             "type": "Microsoft.Common.Section",
                             "elements": [
+                                {
+                                    "name": "spokeNetowrkInfoBoxLocation",
+                                    "type": "Microsoft.Common.InfoBox",
+                                    "options": {
+                                        "text": "Please update the spoke subnetting and the private ip address of the application gateway fields based on your networking requirements.",
+                                        "style": "Info"
+                                    }
+                                },
                                 {
                                     "name": "spokeVirtualNetworkAddressCidrRange",
                                     "label": "Spoke Virtual Network CIDR Range",
@@ -432,7 +448,7 @@
                                     "name": "privateIpAddress",
                                     "type": "Microsoft.Common.TextBox",
                                     "label": "Private Ip Address of Application Gateway",
-                                    "defaultValue": "",
+                                    "defaultValue": "172.23.1.7/24",
                                     "constraints": {
                                         "required": true
                                     }
