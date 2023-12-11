@@ -157,14 +157,14 @@
                                     "name": "namingTextBlock",
                                     "type": "Microsoft.Common.TextBlock",
                                     "options": {
-                                        "text": "Values selected will be used to name resources. Example: rg-it-web-app-p-01, ase-it-web-app-p-01."
+                                        "text": "Values selected will be used to name resources. Example: rg-it-app-p-01, ase-it-app-p-01."
                                     }
                                 },
                                 {
                                     "name": "infoBoxLocation",
                                     "type": "Microsoft.Common.InfoBox",
                                     "options": {
-                                        "text": "Values selected will be used to name resources. Example: ase-it-web-app-p-01",
+                                        "text": "Values selected will be used to name resources. Example: ase-it-app-p-01",
                                         "style": "Info"
                                     }
                                 },
