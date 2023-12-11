@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "2605467286959592768"
+      "templateHash": "17867186801687524362"
     }
   },
   "parameters": {
@@ -151,12 +151,6 @@
         "description": "The address prefix for the management virtual machine subnet."
       }
     },
-    "spokeResourceGroup": {
-      "type": "string",
-      "metadata": {
-        "description": "The resource group for the spoke."
-      }
-    },
     "spokeSubscriptionId": {
       "type": "string",
       "metadata": {
@@ -172,6 +166,9 @@
   },
   "variables": {
     "localAdministratorPassword": "[format('{0}-{1}', toUpper(uniqueString(subscription().id)), parameters('guidValue'))]",
+    "environmentLetter": "[substring(parameters('env'), 0, 1)]",
+    "functionShort": "[if(greater(length(parameters('function')), 5), substring(parameters('function'), 0, 5), parameters('function'))]",
+    "spokeResourceGroup": "[format('rg-{0}-{1}-{2}-{3}', variables('functionShort'), parameters('appName'), variables('environmentLetter'), parameters('index'))]",
     "networkSecurityGroupSecurityRules": [
       {
         "name": "Port_443",
@@ -246,7 +243,7 @@
             "value": "[parameters('location')]"
           },
           "name": {
-            "value": "[parameters('spokeResourceGroup')]"
+            "value": "[variables('spokeResourceGroup')]"
           },
           "tags": {
             "value": {}
@@ -305,7 +302,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -335,7 +332,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.23.1.45101",
-              "templateHash": "743347115334101804"
+              "templateHash": "18034143171049040961"
             }
           },
           "parameters": {
@@ -370,7 +367,8 @@
             "networkSecurityGroupNamePlaceHolder": "[format('nsg-{0}{1}{2}{3}', parameters('appName'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]",
             "resourceNamePlaceHolder": "[format('[PH]-{0}-{1}-{2}-{3}', parameters('function'), parameters('appName'), variables('environmentLetter'), padLeft(parameters('index'), 2, '0'))]",
             "resourceNameShortPlaceHolder": "[format('[PH]-{0}-{1}-{2}-{3}', variables('functionShort'), parameters('appName'), variables('environmentLetter'), padLeft(parameters('index'), 2, '0'))]",
-            "storageAccountNamePlaceHolder": "[format('sta{0}{1}{2}{3}', parameters('appName'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]"
+            "storageAccountNamePlaceHolder": "[format('sta{0}{1}{2}{3}', parameters('appName'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]",
+            "resourceGropuNamePlaceHolder": "[format('rg-{0}{1}{2}{3}', parameters('appName'), variables('environmentLetter'), variables('functionShort'), padLeft(parameters('index'), 2, '0'))]"
           },
           "resources": [],
           "outputs": {
@@ -397,6 +395,10 @@
             "virtualMachineName": {
               "type": "string",
               "value": "[variables('managementVirtualMachineNamePlaceHolder')]"
+            },
+            "resourceGroupName": {
+              "type": "string",
+              "value": "[variables('resourceGropuNamePlaceHolder')]"
             }
           }
         }
@@ -410,7 +412,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('keyvault-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -418,7 +420,7 @@
         "mode": "Incremental",
         "parameters": {
           "keyVaultName": {
-            "value": "[format('kv-{0}', uniqueString(parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')))]"
+            "value": "[format('kv-{0}', uniqueString(parameters('spokeSubscriptionId'), variables('spokeResourceGroup')))]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -427,10 +429,10 @@
             "value": "standard"
           },
           "subnetResourceId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.subnets.value[1].Id]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.subnets.value[1].Id]"
           },
           "virtualNetworkId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.vNetId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.vNetId.value]"
           }
         },
         "template": {
@@ -579,7 +581,7 @@
       },
       "dependsOn": [
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -601,7 +603,7 @@
             "value": "GatewaySubnet"
           },
           "gatewayUserDefinedRouteTableName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-hub-gw')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-hub-gw')]"
           },
           "hubVnetName": {
             "value": "[parameters('hubVirtualNetworkName')]"
@@ -666,8 +668,8 @@
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('hubSubscriptionId'), parameters('hubResourceGroup')), 'Microsoft.Resources/deployments', format('hub-udr-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
@@ -676,7 +678,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('mgmt-vm-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -705,7 +707,7 @@
             "value": "[parameters('hubStorageAccountName')]"
           },
           "keyVaultName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.keyVaultName.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.keyVaultName.value]"
           },
           "localAdministratorPassword": {
             "value": "[variables('localAdministratorPassword')]"
@@ -717,22 +719,22 @@
             "value": "[parameters('location')]"
           },
           "subnetName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mgmtvm-snet')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mgmtvm-snet')]"
           },
           "userAssignedIdentityClientId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiClienId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiClienId.value]"
           },
           "userAssignedIdentityId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiId.value]"
           },
           "userAssignedIdentityPrincipalId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
           },
           "virtualMachineName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.virtualMachineName.value, '[PH]', 'vm')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.virtualMachineName.value, '[PH]', 'vm')]"
           },
           "virtualNetworkName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'vnet')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'vnet')]"
           },
           "vNetAddressPrefixes": {
             "value": "[parameters('vNetAddressPrefixes')]"
@@ -1048,14 +1050,14 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('hubSubscriptionId'), parameters('hubResourceGroup')), 'Microsoft.Resources/deployments', format('rbac-fw-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('rbac-kv-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('rbac-kv-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('hubResourceGroup')), 'Microsoft.Resources/deployments', format('rbac-sa-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -1063,7 +1065,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('udr-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1095,7 +1097,7 @@
             "value": "[parameters('location')]"
           },
           "udrName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-gw')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-gw')]"
           }
         },
         "template": {
@@ -1164,7 +1166,7 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
@@ -1198,7 +1200,7 @@
             "value": "[parameters('location')]"
           },
           "udrName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-hub-gw')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'udr-hub-gw')]"
           }
         },
         "template": {
@@ -1267,7 +1269,7 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
@@ -1276,7 +1278,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('uami-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1287,7 +1289,7 @@
             "value": "[parameters('location')]"
           },
           "managedIdentityName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mi')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mi')]"
           }
         },
         "template": {
@@ -1341,7 +1343,7 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
@@ -1350,7 +1352,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1361,7 +1363,7 @@
             "value": "[parameters('location')]"
           },
           "networkSecurityGroupName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
           },
           "networkSecurityGroupSecurityRules": {
             "value": "[variables('networkSecurityGroupSecurityRules')]"
@@ -1424,7 +1426,7 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
@@ -1433,7 +1435,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1446,7 +1448,7 @@
           "subnets": {
             "value": [
               {
-                "name": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase-snet')]",
+                "name": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase-snet')]",
                 "addressPrefix": "[parameters('aseSubnetAddressPrefix')]",
                 "delegations": [
                   {
@@ -1458,31 +1460,31 @@
                 ],
                 "privateEndpointNetworkPolicies": "Enabled",
                 "privateLinkServiceNetworkPolicies": "Enabled",
-                "networkSecurityGroupName": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
+                "networkSecurityGroupName": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
               },
               {
-                "name": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mgmtvm-snet')]",
+                "name": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mgmtvm-snet')]",
                 "addressPrefix": "[parameters('managementVirtualMachineSubnetAddressPrefix')]",
                 "delegations": [],
                 "privateEndpointNetworkPolicies": "Enabled",
                 "privateLinkServiceNetworkPolicies": "Enabled",
-                "networkSecurityGroupName": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
+                "networkSecurityGroupName": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
               },
               {
-                "name": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'appgw-snet')]",
+                "name": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'appgw-snet')]",
                 "addressPrefix": "[parameters('appGwSubnetAddressPrefix')]",
                 "delegations": [],
                 "privateEndpointNetworkPolicies": "Enabled",
                 "privateLinkServiceNetworkPolicies": "Enabled",
-                "networkSecurityGroupName": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
+                "networkSecurityGroupName": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'nsg')]"
               }
             ]
           },
           "udrName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('udr-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('udr-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
           },
           "virtualNetworkName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'vnet')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'vnet')]"
           },
           "vNetAddressPrefixes": {
             "value": "[parameters('vNetAddressPrefixes')]"
@@ -1567,10 +1569,10 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('udr-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('udr-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -1578,7 +1580,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('ase-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1589,13 +1591,13 @@
             "value": "[variables('aseLbMode')]"
           },
           "aseName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase')]"
           },
           "aseSubnetName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase-snet')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase-snet')]"
           },
           "aseVnetId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.vNetId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.vNetId.value]"
           },
           "kind": {
             "value": "[variables('aseKind')]"
@@ -1670,12 +1672,12 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('mgmt-vm-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('mgmt-vm-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -1683,7 +1685,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('app-serviceplan-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1691,10 +1693,10 @@
         "mode": "Incremental",
         "parameters": {
           "appServicePlanName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'app-sp')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'app-sp')]"
           },
           "hostingEnvironmentId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.hostingid.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.hostingid.value]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -1772,9 +1774,9 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
@@ -1783,7 +1785,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('private-dns-zone-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1791,13 +1793,13 @@
         "mode": "Incremental",
         "parameters": {
           "aseName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'ase')]"
           },
           "privateDNSZoneName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.dnssuffix.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.dnssuffix.value]"
           },
           "virtualNetworkId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.vNetId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.vNetId.value]"
           }
         },
         "template": {
@@ -1896,10 +1898,10 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -1907,7 +1909,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('web-app-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1915,22 +1917,22 @@
         "mode": "Incremental",
         "parameters": {
           "appName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'web')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'web')]"
           },
           "aseName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.hostingEnvironmentName.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.hostingEnvironmentName.value]"
           },
           "hostingPlanName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('app-serviceplan-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.appServicePlanName.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('app-serviceplan-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.appServicePlanName.value]"
           },
           "location": {
             "value": "[parameters('location')]"
           },
           "managedIdentityName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiName.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiName.value]"
           },
           "principalId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
           }
         },
         "template": {
@@ -2016,12 +2018,12 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('app-serviceplan-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('app-serviceplan-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -2029,7 +2031,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -2037,7 +2039,7 @@
         "mode": "Incremental",
         "parameters": {
           "existingLocalVirtualNetworkName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
           },
           "existingRemoteVirtualNetworkName": {
             "value": "[parameters('hubVirtualNetworkName')]"
@@ -2086,9 +2088,9 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -2107,10 +2109,10 @@
             "value": "[parameters('hubVirtualNetworkName')]"
           },
           "existingRemoteVirtualNetworkName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
           },
           "existingRemoteVirtualNetworkResourceGroupName": {
-            "value": "[parameters('spokeResourceGroup')]"
+            "value": "[variables('spokeResourceGroup')]"
           }
         },
         "template": {
@@ -2153,11 +2155,11 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -2173,7 +2175,7 @@
         "mode": "Incremental",
         "parameters": {
           "principalId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
           },
           "storageAccountResourceId": {
             "value": "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('hubSubscriptionId'), parameters('hubResourceGroup')), 'Microsoft.Network/azureFirewalls', parameters('hubStorageAccountName'))]"
@@ -2216,7 +2218,7 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -2224,7 +2226,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('rbac-kv-deployment-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -2232,10 +2234,10 @@
         "mode": "Incremental",
         "parameters": {
           "principalId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
           },
           "keyVaultResourceId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.keyVaultResourceId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.keyVaultResourceId.value]"
           }
         },
         "template": {
@@ -2282,8 +2284,8 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -2305,7 +2307,7 @@
             "value": "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('hubSubscriptionId'), parameters('hubResourceGroup')), 'Microsoft.Network/azureFirewalls', parameters('azureFirewallName'))]"
           },
           "principalId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiPrincipalId.value]"
           }
         },
         "template": {
@@ -2369,7 +2371,7 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     },
     {
@@ -2377,7 +2379,7 @@
       "apiVersion": "2022-09-01",
       "name": "[format('applicationGateway-{0}', parameters('deploymentNameSuffix'))]",
       "subscriptionId": "[parameters('spokeSubscriptionId')]",
-      "resourceGroup": "[parameters('spokeResourceGroup')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -2385,7 +2387,7 @@
         "mode": "Incremental",
         "parameters": {
           "applicationGatewayName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'gw')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'gw')]"
           },
           "applicationGatewayPrivateIp": {
             "value": "[parameters('applicationGatewayPrivateIp')]"
@@ -2400,16 +2402,16 @@
             "value": "[variables('hostnames')]"
           },
           "keyVaultName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.keyVaultName.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.keyVaultName.value]"
           },
           "location": {
             "value": "[parameters('location')]"
           },
           "managedIdentityName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiName.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiName.value]"
           },
           "mgmtSubnetNamingConvention": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mgmtvm-snet')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'mgmtvm-snet')]"
           },
           "pickHostNameFromBackendAddress": {
             "value": "[variables('pickHostNameFromBackendAddress')]"
@@ -2424,7 +2426,7 @@
             "value": "[variables('protocol')]"
           },
           "publicIpAddressName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'pip')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'pip')]"
           },
           "publicIPAllocationMethod": {
             "value": "[variables('publicIPAllocationMethod')]"
@@ -2442,22 +2444,22 @@
             "value": "[variables('requireServerNameIndication')]"
           },
           "resourceGroup": {
-            "value": "[parameters('spokeResourceGroup')]"
+            "value": "[variables('spokeResourceGroup')]"
           },
           "skuName": {
             "value": "[variables('sku')]"
           },
           "subnetName": {
-            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'appgw-snet')]"
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'appgw-snet')]"
           },
           "tier": {
             "value": "[variables('tier')]"
           },
           "virtualNetworkName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.name.value]"
           },
           "webAppFqdn": {
-            "value": "[format('{0}.{1}', replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'web'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.dnssuffix.value)]"
+            "value": "[format('{0}.{1}', replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.resourceName.value, '[PH]', 'web'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.dnssuffix.value)]"
           }
         },
         "template": {
@@ -2785,16 +2787,16 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('mgmt-vm-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('private-dns-zone-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('ase-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('keyvault-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('mgmt-vm-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('networkSecurityGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('private-dns-zone-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[subscriptionResourceId(parameters('spokeSubscriptionId'), 'Microsoft.Resources/deployments', format('resourceGroup-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), parameters('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix')))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     }
   ]

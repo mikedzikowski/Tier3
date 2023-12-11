@@ -149,95 +149,109 @@
                             ]
                         },
                         {
-                            "name": "infoBoxLocation",
-                            "type": "Microsoft.Common.InfoBox",
-                            "options": {
-                                "text": "Values selected will be used to name resources. Example: ase-hr-webapp-p-01",
-                                "style": "Info"
-                            }
-                        },
-                        {
-                            "name": "appName",
-                            "type": "Microsoft.Common.TextBox",
-                            "label": "Name",
-                            "defaultValue": "",
-                            "toolTip": "Use only allowed characters",
-                            "placeholder": "web",
-                            "multiLine": false,
-                            "constraints": {
-                                "required": true,
-                                "validations": []
-                            },
-                            "visible": true
-                        },
-                        {
-                            "name": "appEnvironment",
-                            "type": "Microsoft.Common.DropDown",
-                            "label": "Environment",
-                            "placeholder": "",
-                            "defaultValue": "",
-                            "toolTip": "",
-                            "multiselect": false,
-                            "selectAll": false,
-                            "filter": true,
-                            "filterPlaceholder": "Filter items ...",
-                            "multiLine": false,
-                            "defaultDescription": "A value for selection",
-                            "constraints": {
-                                "allowedValues": [
-                                    {
-                                        "label": "Production",
-                                        "description": "production environment",
-                                        "value": "production"
-                                    },
-                                    {
-                                        "label": "Development",
-                                        "description": "development environment",
-                                        "value": "development"
-                                    },
-                                    {
-                                        "label": "Staging",
-                                        "description": "staging environment",
-                                        "value": "staging"
-                                    },
-                                    {
-                                        "label": "Test",
-                                        "description": "test environment",
-                                        "value": "test"
+                            "name": "naming",
+                            "label": "Naming",
+                            "type": "Microsoft.Common.Section",
+                            "elements": [
+                                {
+                                    "name": "namingTextBlock",
+                                    "type": "Microsoft.Common.TextBlock",
+                                    "options": {
+                                        "text": "Values selected will be used to name resources. Example: rg-it-web-app-p-01, ase-it-web-app-p-01."
                                     }
-                                ],
-                                "required": true
-                            },
-                            "visible": true
-                        },
-                        {
-                            "name": "appFunction",
-                            "type": "Microsoft.Common.TextBox",
-                            "label": "Function",
-                            "defaultValue": "",
-                            "toolTip": "Use only allowed characters",
-                            "placeholder": "app",
-                            "multiLine": false,
-                            "constraints": {
-                                "required": true,
-                                "validations": []
-                            },
-                            "visible": true
-                        },
-                        {
-                            "name": "appIndex",
-                            "type": "Microsoft.Common.Slider",
-                            "min": 1,
-                            "max": 20,
-                            "label": "Index",
-                            "subLabel": "index",
-                            "defaultValue": 1,
-                            "showStepMarkers": false,
-                            "toolTip": "Pick the index of app 1-20",
-                            "constraints": {
-                                "required": true
-                            },
-                            "visible": true
+                                },
+                                {
+                                    "name": "infoBoxLocation",
+                                    "type": "Microsoft.Common.InfoBox",
+                                    "options": {
+                                        "text": "Values selected will be used to name resources. Example: ase-it-web-app-p-01",
+                                        "style": "Info"
+                                    }
+                                },
+                                {
+                                    "name": "appName",
+                                    "type": "Microsoft.Common.TextBox",
+                                    "label": "Name",
+                                    "defaultValue": "",
+                                    "toolTip": "Use only allowed characters",
+                                    "placeholder": "web",
+                                    "multiLine": false,
+                                    "constraints": {
+                                        "required": true,
+                                        "validations": []
+                                    },
+                                    "visible": true
+                                },
+                                {
+                                    "name": "appEnvironment",
+                                    "type": "Microsoft.Common.DropDown",
+                                    "label": "Environment",
+                                    "placeholder": "",
+                                    "defaultValue": "",
+                                    "toolTip": "",
+                                    "multiselect": false,
+                                    "selectAll": false,
+                                    "filter": true,
+                                    "filterPlaceholder": "Filter items ...",
+                                    "multiLine": false,
+                                    "defaultDescription": "A value for selection",
+                                    "constraints": {
+                                        "allowedValues": [
+                                            {
+                                                "label": "Production",
+                                                "description": "production environment",
+                                                "value": "production"
+                                            },
+                                            {
+                                                "label": "Development",
+                                                "description": "development environment",
+                                                "value": "development"
+                                            },
+                                            {
+                                                "label": "Staging",
+                                                "description": "staging environment",
+                                                "value": "staging"
+                                            },
+                                            {
+                                                "label": "Test",
+                                                "description": "test environment",
+                                                "value": "test"
+                                            }
+                                        ],
+                                        "required": true
+                                    },
+                                    "visible": true
+                                },
+                                {
+                                    "name": "appFunction",
+                                    "type": "Microsoft.Common.TextBox",
+                                    "label": "Function",
+                                    "defaultValue": "",
+                                    "toolTip": "Use only allowed characters",
+                                    "placeholder": "app",
+                                    "multiLine": false,
+                                    "constraints": {
+                                        "required": true,
+                                        "validations": []
+                                    },
+                                    "visible": true
+                                },
+                                {
+                                    "name": "appIndex",
+                                    "type": "Microsoft.Common.Slider",
+                                    "min": 1,
+                                    "max": 20,
+                                    "label": "Index",
+                                    "subLabel": "index",
+                                    "defaultValue": 1,
+                                    "showStepMarkers": false,
+                                    "toolTip": "Pick the index of app 1-20",
+                                    "constraints": {
+                                        "required": true
+                                    },
+                                    "visible": true
+                                }
+                            ]
                         }
                     ]
                 },
@@ -286,8 +300,7 @@
                                     "toolTip": "Specify a CIDR range for the Application Gateway subnet within the Spoke Virtual Network range [10,24].",
                                     "constraints": {
                                         "required": true,
-                                        "validations": [
-                                        ]
+                                        "validations": []
                                     }
                                 }
                             ]
@@ -298,22 +311,6 @@
                     "name": "spoke",
                     "label": "Spoke",
                     "elements": [
-                        {
-                            "name": "spokeResourceGroupName",
-                            "label": "Spoke Resource Group",
-                            "type": "Microsoft.Common.Section",
-                            "elements": [
-                                {
-                                    "name": "vmCredentials",
-                                    "type": "Microsoft.Common.TextBox",
-                                    "label": "Spoke Resource Group Name",
-                                    "defaultValue": "",
-                                    "constraints": {
-                                        "required": true
-                                    }
-                                }
-                            ]
-                        },
                         {
                             "name": "spokeVirtualNetwork",
                             "label": "Spoke Virtual Network",
@@ -444,13 +441,13 @@
                         },
                         {
                             "name": "dns",
-                            "label": "Public DNS",
+                            "label": "CN value on certificate (Example *.appserviceenvironment.us)",
                             "type": "Microsoft.Common.Section",
                             "elements": [
                                 {
                                     "name": "dnsZone",
                                     "type": "Microsoft.Common.TextBox",
-                                    "label": "Domain Name (Global)",
+                                    "label": "Common Name (CN) value on certificate",
                                     "defaultValue": "*.appserviceenvironment.us",
                                     "constraints": {
                                         "required": true
@@ -553,16 +550,15 @@
                 "hubStorageAccountName": "[replace(first(skip(split(steps('certificates').storageBlobSelection.sasUri, '.'), 0)), 'https://', '')]",
                 "hubVirtualNetworkName": "[steps('hub').hubResources.hubVirtualNetwork.name]",
                 "managementVirtualMachineSubnetAddressPrefix": "[steps('spoke').spokeVirtualNetwork.mgmtSubnetAddressCidrRange]",
-                "spokeResourceGroup": "[steps('spoke').spokeResourceGroupName.vmCredentials]",
                 "vNetAddressPrefixes": "[steps('spoke').spokeVirtualNetwork.spokeVirtualNetworkAddressCidrRange]",
                 "applicationGatewaySslCertificateFilename": "[steps('certificates').storageBlobSelection.blobName]",
                 "hubSubscriptionId": "[replace(steps('basics').hubSection.hubSubscriptionId, '/subscriptions/', '')]",
                 "location": "[steps('basics').locationSection.location]",
                 "spokeSubscriptionId": "[replace(steps('basics').spokeSection.spokeSubscriptionId, '/subscriptions/', '')]",
-                "appName": "[steps('basics').appName]",
-                "env": "[steps('basics').appEnvironment]",
-                "index": "[steps('basics').appIndex]",
-                "function": "[steps('basics').appFunction]"
+                "appName": "[steps('basics').naming.appName]",
+                "env": "[steps('basics').naming.appEnvironment]",
+                "index": "[steps('basics').naming.appIndex]",
+                "function": "[steps('basics').naming.appFunction]"
             },
             "kind": "Subscription",
             "subscriptionId": "[steps('basics').spokeSection.spokeSubscriptionId]",

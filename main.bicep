@@ -74,8 +74,8 @@ param location string = deployment().location
 @description('The address prefix for the management virtual machine subnet.')
 param managementVirtualMachineSubnetAddressPrefix string
 
-@description('The resource group for the spoke.')
-param spokeResourceGroup string
+// @description('The resource group for the spoke.')
+// param spokeResourceGroup string
 
 @description('The subscription ID for the spoke.')
 param spokeSubscriptionId string
@@ -86,6 +86,9 @@ param vNetAddressPrefixes string
 var localAdministratorPassword = '${toUpper(uniqueString(subscription().id))}-${guidValue}'
 
 // RESOURCE NAME CONVENTIONS WITH ABBREVIATIONS
+var environmentLetter = substring(env,0,1)
+var functionShort = length(function) > 5 ? substring(function,0,5) : function
+var spokeResourceGroup = 'rg-${functionShort}-${appName}-${environmentLetter}-${index}'
 var appGwSubnetNamingConvention = replace(names.outputs.resourceName, '[PH]', 'appgw-snet')
 var applicationGatewayNamingConvention = replace(names.outputs.resourceName, '[PH]', 'gw')
 var appNamingConvention = replace(names.outputs.resourceName, '[PH]', 'web')

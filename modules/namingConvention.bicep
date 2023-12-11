@@ -19,6 +19,7 @@ var networkSecurityGroupNamePlaceHolder = 'nsg-${appName}${environmentLetter}${f
 var resourceNamePlaceHolder = '[PH]-${function}-${appName}-${environmentLetter}-${padLeft(index,2,'0')}'
 var resourceNameShortPlaceHolder = '[PH]-${functionShort}-${appName}-${environmentLetter}-${padLeft(index,2,'0')}'
 var storageAccountNamePlaceHolder = 'sta${appName}${environmentLetter}${functionShort}${padLeft(index,2,'0')}'
+var resourceGropuNamePlaceHolder = 'rg-${appName}${environmentLetter}${functionShort}${padLeft(index,2,'0')}'
 
 output dbName string = dbNamePlaceHolder
 output networkSecurityGroupName string = networkSecurityGroupNamePlaceHolder
@@ -26,3 +27,4 @@ output resourceName string = resourceNamePlaceHolder
 output resourceNameShort string = resourceNameShortPlaceHolder
 output storageAccountName string = storageAccountNamePlaceHolder
 output virtualMachineName string = managementVirtualMachineNamePlaceHolder
+output resourceGroupName string = resourceGropuNamePlaceHolder
