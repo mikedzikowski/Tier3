@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "2928093136633686435"
+      "templateHash": "2657314436402153225"
     }
   },
   "parameters": {
@@ -2797,6 +2797,100 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('spoke-vnet-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('hub-peering-deployment-{0}', parameters('deploymentNameSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[format('remove-vm-{0}', parameters('deploymentNameSuffix'))]",
+      "subscriptionId": "[parameters('spokeSubscriptionId')]",
+      "resourceGroup": "[variables('spokeResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "userAssignedIdentityClientId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.uamiClienId.value]"
+          },
+          "virtualMachineName": {
+            "value": "[replace(reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix'))), '2022-09-01').outputs.virtualMachineName.value, '[PH]', 'vm')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.23.1.45101",
+              "templateHash": "4018961629739746541"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "userAssignedIdentityClientId": {
+              "type": "string"
+            },
+            "virtualMachineName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Compute/virtualMachines/runCommands",
+              "apiVersion": "2023-03-01",
+              "name": "[format('{0}/{1}', parameters('virtualMachineName'), 'removeVirtualMachine')]",
+              "location": "[parameters('location')]",
+              "tags": {},
+              "properties": {
+                "treatFailureAsDeploymentFailure": true,
+                "asyncExecution": false,
+                "parameters": [
+                  {
+                    "name": "Environment",
+                    "value": "[environment().name]"
+                  },
+                  {
+                    "name": "ManagementVmName",
+                    "value": "[parameters('virtualMachineName')]"
+                  },
+                  {
+                    "name": "ResourceGroupName",
+                    "value": "[resourceGroup().name]"
+                  },
+                  {
+                    "name": "SubscriptionId",
+                    "value": "[subscription().subscriptionId]"
+                  },
+                  {
+                    "name": "TenantId",
+                    "value": "[tenant().tenantId]"
+                  },
+                  {
+                    "name": "UserAssignedIdentityClientId",
+                    "value": "[parameters('userAssignedIdentityClientId')]"
+                  }
+                ],
+                "source": {
+                  "script": "        param(\r\n          [string]$Environment,\r\n          [string]$ManagementVmName,\r\n          [string]$ResourceGroupName,\r\n          [string]$SubscriptionId,\r\n          [string]$TenantId,\r\n          [string]$UserAssignedIdentityClientId\r\n        )\r\n        $ErrorActionPreference = 'Stop'\r\n        Connect-AzAccount -Environment $Environment -Tenant $TenantId -Subscription $SubscriptionId -Identity -AccountId $UserAssignedIdentityClientId | Out-Null\r\n        Remove-AzVM -ResourceGroupName $ResourceGroupName -Name $ManagementVmName -Force\r\n      "
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('applicationGateway-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('naming-convention-deployment-{0}', parameters('deploymentNameSuffix')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('spokeSubscriptionId'), variables('spokeResourceGroup')), 'Microsoft.Resources/deployments', format('uami-deployment-{0}', parameters('deploymentNameSuffix')))]"
       ]
     }
   ]
