@@ -87,8 +87,7 @@ var localAdministratorPassword = '${toUpper(uniqueString(subscription().id))}-${
 
 // RESOURCE NAME CONVENTIONS WITH ABBREVIATIONS
 var environmentLetter = substring(env,0,1)
-var functionShort = length(function) > 5 ? substring(function,0,5) : function
-var spokeResourceGroup = 'rg-${functionShort}-${appName}-${environmentLetter}-${padLeft(index,2,'0')}'
+var spokeResourceGroup = 'rg-${function}-${appName}-${environmentLetter}-${padLeft(index,2,'0')}'
 var appGwSubnetNamingConvention = replace(names.outputs.resourceName, '[PH]', 'appgw-snet')
 var applicationGatewayNamingConvention = replace(names.outputs.resourceName, '[PH]', 'gw')
 var appNamingConvention = replace(names.outputs.resourceName, '[PH]', 'web')
@@ -600,5 +599,18 @@ module applicationGateway 'modules/applicationGateway.bicep' = {
     privateDnsZone
     rg
     virtualNetworkPeeringToHub
+  ]
+}
+
+module removeVirtualMachine  'modules/removeVirtualMachine.bicep' = {
+  name: 'remove-vm-${deploymentNameSuffix}'
+  scope: resourceGroup(spokeSubscriptionId, spokeResourceGroup)
+  params: {
+    location: location
+    userAssignedIdentityClientId: userAssignedManagedIdentity.outputs.uamiClienId
+    virtualMachineName: managementVirtualMachineName
+  }
+  dependsOn: [
+    applicationGateway
   ]
 }

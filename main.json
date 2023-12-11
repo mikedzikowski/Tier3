@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.23.1.45101",
-      "templateHash": "2657314436402153225"
+      "templateHash": "16422244562861233471"
     }
   },
   "parameters": {
@@ -167,8 +167,7 @@
   "variables": {
     "localAdministratorPassword": "[format('{0}-{1}', toUpper(uniqueString(subscription().id)), parameters('guidValue'))]",
     "environmentLetter": "[substring(parameters('env'), 0, 1)]",
-    "functionShort": "[if(greater(length(parameters('function')), 5), substring(parameters('function'), 0, 5), parameters('function'))]",
-    "spokeResourceGroup": "[format('rg-{0}-{1}-{2}-{3}', variables('functionShort'), parameters('appName'), variables('environmentLetter'), padLeft(parameters('index'), 2, '0'))]",
+    "spokeResourceGroup": "[format('rg-{0}-{1}-{2}-{3}', parameters('function'), parameters('appName'), variables('environmentLetter'), padLeft(parameters('index'), 2, '0'))]",
     "networkSecurityGroupSecurityRules": [
       {
         "name": "Port_443",

@@ -448,7 +448,7 @@
                                     "name": "privateIpAddress",
                                     "type": "Microsoft.Common.TextBox",
                                     "label": "Private Ip Address of Application Gateway",
-                                    "defaultValue": "172.23.1.7/24",
+                                    "defaultValue": "172.23.1.7",
                                     "constraints": {
                                         "required": true
                                     }
