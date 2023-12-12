@@ -13,6 +13,11 @@ Read on to understand what this example does, and when you're ready, collect all
 - A certificate to be used with the web app as a PFX uploaded to the storage account in the MLZ hub
   - When testing in a dev environment a self-signed certificate generated from a Key Vault with CN=*.appserviceenvironment.us will be sufficient
 
+## Required Permissions ##
+
+Permissions:
+    Ensure the principal deploying the solution has "Owner" and "Key Vault Administrator" roles assigned on the target Azure subscription. This solution contains many role assignments at different scopes so the principal deploying this solution will need to be an Owner at the subscription scope for a successful deployment. It also deploys a key and secrets in a key vault to enhance security. A custom role may be used to reduce the scope of permisions required. 
+
 ## Upload the following scripts and files to your storage account container ###
 
 [Az.Accounts 2.13.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Accounts/2.13.0)
@@ -24,6 +29,8 @@ Read on to understand what this example does, and when you're ready, collect all
 [Az.Network 6.2.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Network/6.2.0)
 
 [Az.Resources 6.6.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Resources/6.6.0)
+
+[Az.Compute 5.7.0 PowerShell Module](https://www.powershellgallery.com/api/v2/package/Az.Compute/5.7.0)
 
 ## Creating Template Spec ##
 

@@ -562,6 +562,14 @@ module roleAssignmentAzureFirewall 'modules/roleAssignmentAzureFirewall.bicep' =
   }
 }
 
+module roleAssignmentManagementVirtualMachine 'modules/roleAssignmentVirtualMachine.bicep' = {
+  name: 'rbac-vm-deployment-${deploymentNameSuffix}'
+  scope: resourceGroup(spokeSubscriptionId, spokeResourceGroup)
+  params: {
+    principalId: userAssignedManagedIdentity.outputs.uamiPrincipalId
+  }
+}
+
 module applicationGateway 'modules/applicationGateway.bicep' = {
   name: 'applicationGateway-${deploymentNameSuffix}'
   scope: resourceGroup(spokeSubscriptionId, spokeResourceGroup)
@@ -612,5 +620,6 @@ module removeVirtualMachine  'modules/removeVirtualMachine.bicep' = {
   }
   dependsOn: [
     applicationGateway
+    roleAssignmentManagementVirtualMachine
   ]
 }
